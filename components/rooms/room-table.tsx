@@ -15,7 +15,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { formatCurrency } from "@/lib/utils"
 import {
   MoreHorizontal,
   Eye,
@@ -39,6 +38,7 @@ import { EditRoomDialog } from "@/components/rooms/edit-room-dialog"
 import { ImageGallery } from "@/components/rooms/image-gallery"
 import { deleteRoom } from "@/actions/room"
 import { toast } from "react-hot-toast"
+import { useCurrency } from "@/hooks/use-currency"
 
 // Define types based on Prisma models
 interface RoomCategory {
@@ -75,6 +75,7 @@ interface SortOption {
 }
 
 export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
+  const { currency, formatPrice } = useCurrency()
   const [rooms, setRooms] = useState<Room[]>(initialRooms)
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
@@ -91,7 +92,37 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
   const [showRowsMenu, setShowRowsMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [roomToDelete, setRoomToDelete] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<ViewMode>("table")
+  const [viewMode, setViewMode] = useState<ViewMode>("grid") // Changed default to grid
+
+  // Load user preferences from localStorage on component mount
+  useEffect(() => {
+    const savedViewMode = localStorage.getItem("roomTableViewMode") as ViewMode | null
+    const savedRowsPerPage = localStorage.getItem("roomTableRowsPerPage")
+    const savedSortField = localStorage.getItem("roomTableSortField") as SortField | null
+    const savedSortDirection = localStorage.getItem("roomTableSortDirection") as SortDirection | null
+
+    if (savedViewMode) setViewMode(savedViewMode)
+    if (savedRowsPerPage) setRowsPerPage(Number.parseInt(savedRowsPerPage))
+    if (savedSortField) setSortField(savedSortField)
+    if (savedSortDirection) setSortDirection(savedSortDirection)
+  }, [])
+
+  // Save user preferences to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem("roomTableViewMode", viewMode)
+  }, [viewMode])
+
+  useEffect(() => {
+    localStorage.setItem("roomTableRowsPerPage", rowsPerPage.toString())
+  }, [rowsPerPage])
+
+  useEffect(() => {
+    localStorage.setItem("roomTableSortField", sortField)
+  }, [sortField])
+
+  useEffect(() => {
+    localStorage.setItem("roomTableSortDirection", sortDirection)
+  }, [sortDirection])
 
   // Update rooms when initialRooms changes
   useEffect(() => {
@@ -275,11 +306,11 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Price:</span>
-            <span className="font-medium">{formatCurrency(room.price, "UGX")}</span>
+            <span className="font-medium">{formatPrice(room.price)}</span>
           </div>
         </div>
 
-        {room.description && <p className="text-sm text-muted-foreground line-clamp-2">{room.description}</p>}
+        {room.description && <p className="text-sm text-muted-foreground truncate">{room.description}</p>}
       </div>
     </div>
   )
@@ -408,17 +439,17 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
 
       {/* Content Area */}
       {viewMode === "table" ? (
-        <div className="rounded-md border">
-          <div className="overflow-x-auto max-w-full">
-            <div className="min-w-[800px]">
+        <div className="rounded-md border overflow-hidden">
+          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
+            <div style={{ minWidth: "800px" }}>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[80px]">Image</TableHead>
-                    <TableHead className="min-w-[120px]">Room Number</TableHead>
-                    <TableHead className="min-w-[120px]">Category</TableHead>
-                    <TableHead className="min-w-[120px]">Price (UGX)</TableHead>
-                    <TableHead className="min-w-[150px] hidden md:table-cell">Description</TableHead>
+                    <TableHead>Room Number</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Description</TableHead>
                     <TableHead className="w-[60px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -447,10 +478,8 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
                         </TableCell>
                         <TableCell className="font-medium">{room.roomNumber}</TableCell>
                         <TableCell>{getCategoryName(room.categoryId)}</TableCell>
-                        <TableCell>{formatCurrency(room.price, "UGX")}</TableCell>
-                        <TableCell className="hidden md:table-cell max-w-[150px] whitespace-nowrap overflow-hidden text-ellipsis">
-                          {truncateDescription(room.description)}
-                        </TableCell>
+                        <TableCell>{formatPrice(room.price)}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{room.description}</TableCell>
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -568,7 +597,7 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
                       <div className="font-medium">Price:</div>
-                      <div className="sm:col-span-2">{formatCurrency(selectedRoom.price, "UGX")}</div>
+                      <div className="sm:col-span-2">{formatPrice(selectedRoom.price)}</div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
                       <div className="font-medium">Description:</div>
