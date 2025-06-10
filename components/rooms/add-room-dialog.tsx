@@ -43,7 +43,6 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const [images, setImages] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
- 
 
   const {
     register,
@@ -115,41 +114,40 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
     toast.success("All form fields have been cleared")
   }
 
- const onSubmit = async (data: FormValues) => {
-  setIsSubmitting(true);
-  try {
-    const result = await createRoom({
-      roomNumber: data.roomNumber.trim(),
-      categoryId: data.categoryId,
-      price: Number.parseFloat(data.price),
-      description: data.description,
-      images,
-    });
-    if (result.success) {
-      // Reset form without showing the "All form fields have been cleared" toast
-      reset({
-        roomNumber: "",
-        categoryId: "",
-        price: "",
-        description: "",
-      });
-      setImages([]);
-      localStorage.removeItem("addRoomFormData");
-      onOpenChange(false);
-      toast.success("Room has been successfully added");
-      if (onRoomAdded && result.data) {
-        onRoomAdded(result.data);
+  const onSubmit = async (data: FormValues) => {
+    setIsSubmitting(true)
+    try {
+      const result = await createRoom({
+        roomNumber: data.roomNumber.trim(),
+        categoryId: data.categoryId,
+        price: Number.parseFloat(data.price),
+        description: data.description,
+        images,
+      })
+      if (result.success) {
+        // Reset form without showing the "All form fields have been cleared" toast
+        reset({
+          roomNumber: "",
+          categoryId: "",
+          price: "",
+          description: "",
+        })
+        setImages([])
+        localStorage.removeItem("addRoomFormData")
+        onOpenChange(false)
+        toast.success("Room has been successfully added")
+        if (onRoomAdded && result.data) {
+          onRoomAdded(result.data)
+        }
+      } else {
+        toast.error("Failed to add room")
       }
-    } else {
-      toast.error("Failed to add room"); // Also changed toast.success to toast.error here for better UX
+    } catch (error) {
+      toast.error("An unexpected error occurred")
+    } finally {
+      setIsSubmitting(false)
     }
-  } catch (error) {
-    toast.error("An unexpected error occurred"); // Also changed toast.success to toast.error here for better UX
-  } finally {
-    setIsSubmitting(false);
   }
-};
-
 
   const handleAddImage = (url: string) => {
     if (url && !images.includes(url)) {
@@ -179,30 +177,31 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
         }
       }}
     >
-      <DialogContent className="sm:max-w-[500px] max-w-[90vw] max-h-[90vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle>Add New Room</DialogTitle>
-          <DialogDescription>Enter the details for the new room.</DialogDescription>
+      <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[95vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0 pb-4">
+          <DialogTitle className="text-lg sm:text-xl">Add New Room</DialogTitle>
+          <DialogDescription className="text-sm sm:text-base">Enter the details for the new room.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
-          <div className="grid gap-4 py-4 overflow-y-auto pr-1 flex-1">
-            {Object.keys(errors).length > 0 && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  {errors.roomNumber?.message ||
-                    errors.categoryId?.message ||
-                    errors.price?.message ||
-                    "Please check the form for errors"}
-                </AlertDescription>
-              </Alert>
-            )}
+          <div className="flex-1 overflow-y-auto px-1">
+            <div className="space-y-4 sm:space-y-6">
+              {Object.keys(errors).length > 0 && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    {errors.roomNumber?.message ||
+                      errors.categoryId?.message ||
+                      errors.price?.message ||
+                      "Please check the form for errors"}
+                  </AlertDescription>
+                </Alert>
+              )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="roomNumber" className="sm:text-right">
-                Room Number
-              </Label>
-              <div className="sm:col-span-3">
+              {/* Room Number */}
+              <div className="space-y-2">
+                <Label htmlFor="roomNumber" className="text-sm font-medium">
+                  Room Number
+                </Label>
                 <Input
                   id="roomNumber"
                   {...register("roomNumber", {
@@ -210,82 +209,85 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                   })}
                   className={`${errors.roomNumber ? "border-red-500" : ""}`}
                   disabled={isSubmitting}
+                  placeholder="Enter room number"
                 />
-                {errors.roomNumber && <p className="text-red-500 text-sm mt-1">{errors.roomNumber.message}</p>}
+                {errors.roomNumber && <p className="text-red-500 text-xs sm:text-sm">{errors.roomNumber.message}</p>}
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="category" className="sm:text-right">
-                Category
-              </Label>
-              <div className="sm:col-span-3 relative">
-                <button
-                  type="button"
-                  className={`flex h-10 w-full items-center justify-between rounded-md border ${
-                    errors.categoryId ? "border-red-500" : "border-input"
-                  } bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
-                  onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                  disabled={isSubmitting}
-                >
-                  <span>{getCategoryName(watchedValues.categoryId)}</span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className={`h-4 w-4 transition-transform ${showCategoryDropdown ? "rotate-180" : ""}`}
+              {/* Category */}
+              <div className="space-y-2">
+                <Label htmlFor="category" className="text-sm font-medium">
+                  Category
+                </Label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    className={`flex h-10 w-full items-center justify-between rounded-md border ${
+                      errors.categoryId ? "border-red-500" : "border-input"
+                    } bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
+                    onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                    disabled={isSubmitting}
                   >
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
-                {errors.categoryId && <p className="text-red-500 text-sm mt-1">{errors.categoryId.message}</p>}
+                    <span className="truncate">{getCategoryName(watchedValues.categoryId)}</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className={`h-4 w-4 transition-transform flex-shrink-0 ml-2 ${
+                        showCategoryDropdown ? "rotate-180" : ""
+                      }`}
+                    >
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
 
-                {showCategoryDropdown && (
-                  <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
-                    <div className="p-1">
-                      {roomCategories.length === 0 ? (
-                        <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-muted-foreground">
-                          No categories available
-                        </div>
-                      ) : (
-                        roomCategories.map((category) => (
-                          <div
-                            key={category.id}
-                            className={`relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${
-                              watchedValues.categoryId === category.id ? "bg-accent text-accent-foreground" : ""
-                            }`}
-                            onClick={() => {
-                              setValue("categoryId", category.id, { shouldValidate: true })
-                              setShowCategoryDropdown(false)
-                            }}
-                          >
-                            {category.name}
+                  {showCategoryDropdown && (
+                    <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+                      <div className="p-1">
+                        {roomCategories.length === 0 ? (
+                          <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-muted-foreground">
+                            No categories available
                           </div>
-                        ))
-                      )}
+                        ) : (
+                          roomCategories.map((category) => (
+                            <div
+                              key={category.id}
+                              className={`relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${
+                                watchedValues.categoryId === category.id ? "bg-accent text-accent-foreground" : ""
+                              }`}
+                              onClick={() => {
+                                setValue("categoryId", category.id, { shouldValidate: true })
+                                setShowCategoryDropdown(false)
+                              }}
+                            >
+                              {category.name}
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-                <input
-                  type="hidden"
-                  {...register("categoryId", {
-                    required: "Please select a room category",
-                  })}
-                />
+                  )}
+                  <input
+                    type="hidden"
+                    {...register("categoryId", {
+                      required: "Please select a room category",
+                    })}
+                  />
+                </div>
+                {errors.categoryId && <p className="text-red-500 text-xs sm:text-sm">{errors.categoryId.message}</p>}
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="price" className="sm:text-right">
-                Price (UGX)
-              </Label>
-              <div className="sm:col-span-3">
+              {/* Price */}
+              <div className="space-y-2">
+                <Label htmlFor="price" className="text-sm font-medium">
+                  Price (UGX)
+                </Label>
                 <Input
                   id="price"
                   type="number"
@@ -296,75 +298,79 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                   })}
                   className={`${errors.price ? "border-red-500" : ""}`}
                   disabled={isSubmitting}
+                  placeholder="Enter price"
                 />
-                {errors.price && <p className="text-red-500 text-sm mt-1">{errors.price.message}</p>}
+                {errors.price && <p className="text-red-500 text-xs sm:text-sm">{errors.price.message}</p>}
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="description" className="sm:text-right">
-                Description
-              </Label>
-              <div className="sm:col-span-3">
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-sm font-medium">
+                  Description
+                </Label>
                 <Textarea
                   id="description"
                   {...register("description")}
-                  className="min-h-[100px]"
+                  className="min-h-[80px] sm:min-h-[100px] resize-none"
                   placeholder="Detailed description of the room"
                   disabled={isSubmitting}
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-start gap-2 sm:gap-4">
-              <Label className="sm:text-right pt-2">Room Images</Label>
-              <div className="sm:col-span-3 space-y-4">
-                <ImageUploader onImageAdded={handleAddImage} />
+              {/* Room Images */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Room Images</Label>
+                <div className="space-y-3">
+                  <ImageUploader onImageAdded={handleAddImage} />
 
-                {images.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                    {images.map((image, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={image || "/placeholder.svg"}
-                          alt={`Room image ${index + 1}`}
-                          className="h-24 w-full object-cover rounded-md border"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage(index)}
-                          className="absolute top-1 right-1 bg-black/70 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          disabled={isSubmitting}
-                        >
-                          <X className="h-3 w-3 text-white" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                  {images.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {images.map((image, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={image || "/placeholder.svg"}
+                            alt={`Room image ${index + 1}`}
+                            className="h-20 sm:h-24 w-full object-cover rounded-md border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(index)}
+                            className="absolute top-1 right-1 bg-black/70 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            disabled={isSubmitting}
+                          >
+                            <X className="h-3 w-3 text-white" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2 flex-shrink-0 pt-2 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={resetFormData}
-              className="w-full sm:w-auto"
-              disabled={isSubmitting}
-            >
-              Clear Form
-            </Button>
-            <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Adding...
-                </>
-              ) : (
-                "Add Room"
-              )}
-            </Button>
+
+          <DialogFooter className="flex-shrink-0 pt-4 border-t mt-4">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:ml-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={resetFormData}
+                className="w-full sm:w-auto order-2 sm:order-1"
+                disabled={isSubmitting}
+              >
+                Clear Form
+              </Button>
+              <Button type="submit" className="w-full sm:w-auto order-1 sm:order-2" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  "Add Room"
+                )}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

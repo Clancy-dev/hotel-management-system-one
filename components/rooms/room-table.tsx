@@ -409,80 +409,82 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
       {/* Content Area */}
       {viewMode === "table" ? (
         <div className="rounded-md border">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[80px]">Image</TableHead>
-                  <TableHead className="min-w-[120px]">Room Number</TableHead>
-                  <TableHead className="min-w-[120px]">Category</TableHead>
-                  <TableHead className="min-w-[120px]">Price (UGX)</TableHead>
-                  <TableHead className="min-w-[150px] hidden md:table-cell">Description</TableHead>
-                  <TableHead className="w-[60px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentRooms.length === 0 ? (
+          <div className="overflow-x-auto max-w-full">
+            <div className="min-w-[800px]">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                      {searchTerm.trim() !== "" ? `No rooms found matching "${searchTerm}"` : "No rooms found."}
-                    </TableCell>
+                    <TableHead className="w-[80px]">Image</TableHead>
+                    <TableHead className="min-w-[120px]">Room Number</TableHead>
+                    <TableHead className="min-w-[120px]">Category</TableHead>
+                    <TableHead className="min-w-[120px]">Price (UGX)</TableHead>
+                    <TableHead className="min-w-[150px] hidden md:table-cell">Description</TableHead>
+                    <TableHead className="w-[60px]">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  currentRooms.map((room) => (
-                    <TableRow key={room.id}>
-                      <TableCell>
-                        {room.images && room.images.length > 0 ? (
-                          <img
-                            src={room.images[0] || "/placeholder.svg"}
-                            alt={`Room ${room.roomNumber}`}
-                            className="h-12 w-12 object-cover rounded-md"
-                          />
-                        ) : (
-                          <div className="h-12 w-12 bg-muted flex items-center justify-center rounded-md">
-                            <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">{room.roomNumber}</TableCell>
-                      <TableCell>{getCategoryName(room.categoryId)}</TableCell>
-                      <TableCell>{formatCurrency(room.price, "UGX")}</TableCell>
-                      <TableCell className="hidden md:table-cell max-w-[150px] whitespace-nowrap overflow-hidden text-ellipsis">
-                        {truncateDescription(room.description)}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewDetails(room)}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEdit(room)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleViewGallery(room)}>
-                              <GalleryHorizontal className="mr-2 h-4 w-4" />
-                              View Images
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete(room.id)} className="text-destructive">
-                              <Trash className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                </TableHeader>
+                <TableBody>
+                  {currentRooms.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        {searchTerm.trim() !== "" ? `No rooms found matching "${searchTerm}"` : "No rooms found."}
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    currentRooms.map((room) => (
+                      <TableRow key={room.id}>
+                        <TableCell>
+                          {room.images && room.images.length > 0 ? (
+                            <img
+                              src={room.images[0] || "/placeholder.svg"}
+                              alt={`Room ${room.roomNumber}`}
+                              className="h-12 w-12 object-cover rounded-md"
+                            />
+                          ) : (
+                            <div className="h-12 w-12 bg-muted flex items-center justify-center rounded-md">
+                              <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">{room.roomNumber}</TableCell>
+                        <TableCell>{getCategoryName(room.categoryId)}</TableCell>
+                        <TableCell>{formatCurrency(room.price, "UGX")}</TableCell>
+                        <TableCell className="hidden md:table-cell max-w-[150px] whitespace-nowrap overflow-hidden text-ellipsis">
+                          {truncateDescription(room.description)}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Open menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewDetails(room)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEdit(room)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleViewGallery(room)}>
+                                <GalleryHorizontal className="mr-2 h-4 w-4" />
+                                View Images
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDelete(room.id)} className="text-destructive">
+                                <Trash className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
       ) : (
