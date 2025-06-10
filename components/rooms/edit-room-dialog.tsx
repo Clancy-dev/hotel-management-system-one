@@ -19,7 +19,7 @@ import { updateRoom } from "@/actions/room"
 import { ImageUploader } from "@/components/rooms/image-uploader"
 import { X, AlertCircle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "react-hot-toast"
 
 interface RoomCategory {
   id: string
@@ -54,7 +54,7 @@ export function EditRoomDialog({ open, onOpenChange, room, roomCategories, onRoo
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [originalRoomNumber, setOriginalRoomNumber] = useState("")
-  const { toast } = useToast()
+  
 
   useEffect(() => {
     if (room) {
@@ -102,19 +102,19 @@ export function EditRoomDialog({ open, onOpenChange, room, roomCategories, onRoo
 
       if (result.success) {
         onOpenChange(false)
-        toast({
-          title: "Room updated",
-          description: "The room has been successfully updated",
-        })
+        toast.success("The room has been successfully updated")
+        
 
         if (onRoomUpdated && result.data) {
           onRoomUpdated(result.data)
         }
       } else {
         setError(result.error || "Failed to update room")
+        toast.error("Failed to update room")
       }
     } catch (error) {
       setError("An unexpected error occurred")
+      toast.error("An unexpected error occurred")
     } finally {
       setIsSubmitting(false)
     }
