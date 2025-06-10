@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useCurrency } from "@/hooks/use-currency"
+import { CurrencyProvider, useCurrency } from "@/hooks/use-currency"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
@@ -24,7 +24,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="container py-8 max-w-5xl">
+  
+        <div className="container py-8 max-w-5xl">
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
       <Tabs defaultValue="currency" className="w-full">
@@ -103,5 +104,8 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
+
+    
+    
   )
 }
