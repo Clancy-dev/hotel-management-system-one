@@ -210,264 +210,272 @@ export default function CategoriesFormPopUp({
   const indexOfFirstCategory = indexOfLastCategory - categoriesPerPage
   const currentCategories = categories.slice(indexOfFirstCategory, indexOfLastCategory)
   const totalPages = Math.ceil(categories.length / categoriesPerPage)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[95vh] overflow-hidden">
-        <DialogHeader className="pb-4">
+      <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0 pb-4">
           <DialogTitle className="text-lg sm:text-xl">Manage Room Categories</DialogTitle>
           <DialogDescription className="text-sm sm:text-base">
             Add or remove room categories for your hotel.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4 overflow-y-auto pr-1">
-          <form onSubmit={handleAddCategory} className="grid gap-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex-1 overflow-y-auto px-1">
+            <div className="space-y-4 sm:space-y-6">
+              <form onSubmit={handleAddCategory} className="space-y-4">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-sm">{error}</AlertDescription>
+                  </Alert>
+                )}
 
-            <div className="space-y-2">
-              <Label htmlFor="categoryName" className="text-sm font-medium">
-                Category Name
-              </Label>
-              <div>
-                {!isCustomCategory ? (
-                  <div className="relative">
-                    <button
-                      type="button"
-                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                      disabled={isSubmitting}
-                    >
-                      <span className="truncate">
-                        {newCategoryName
-                          ? categoryOptions.find((opt) => opt.value === newCategoryName)?.label
-                          : "Select a category type"}
-                      </span>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className={`h-4 w-4 transition-transform flex-shrink-0 ml-2 ${showCategoryDropdown ? "rotate-180" : ""}`}
-                      >
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
-                    </button>
+                <div className="space-y-2">
+                  <Label htmlFor="categoryName" className="text-sm font-medium">
+                    Category Name
+                  </Label>
+                  <div>
+                    {!isCustomCategory ? (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                          disabled={isSubmitting}
+                        >
+                          <span className="truncate">
+                            {newCategoryName
+                              ? categoryOptions.find((opt) => opt.value === newCategoryName)?.label
+                              : "Select a category type"}
+                          </span>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className={`h-4 w-4 transition-transform flex-shrink-0 ml-2 ${
+                              showCategoryDropdown ? "rotate-180" : ""
+                            }`}
+                          >
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                          </svg>
+                        </button>
 
-                    {showCategoryDropdown && (
-                      <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
-                        <div className="p-1">
-                          {categoryOptions.map((option) => (
-                            <div
-                              key={option.value}
-                              className={`relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${
-                                newCategoryName === option.value ? "bg-accent text-accent-foreground" : ""
-                              }`}
-                              onClick={() => handleCategorySelect(option.value)}
-                            >
-                              {option.label}
+                        {showCategoryDropdown && (
+                          <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+                            <div className="p-1">
+                              {categoryOptions.map((option) => (
+                                <div
+                                  key={option.value}
+                                  className={`relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${
+                                    newCategoryName === option.value ? "bg-accent text-accent-foreground" : ""
+                                  }`}
+                                  onClick={() => handleCategorySelect(option.value)}
+                                >
+                                  <span className="truncate">{option.label}</span>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        <Input
+                          value={customCategoryName}
+                          onChange={(e) => setCustomCategoryName(e.target.value)}
+                          placeholder="Enter custom category name"
+                          className="flex-1"
+                          disabled={isSubmitting}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsCustomCategory(false)}
+                          disabled={isSubmitting}
+                          className="w-full"
+                        >
+                          Cancel
+                        </Button>
                       </div>
                     )}
                   </div>
+                </div>
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Category
+                    </>
+                  )}
+                </Button>
+              </form>
+
+              <div className="border-t pt-4">
+                <h3 className="mb-3 font-medium text-sm sm:text-base">Existing Categories</h3>
+                {categories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">No categories added yet.</p>
                 ) : (
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Input
-                      value={customCategoryName}
-                      onChange={(e) => setCustomCategoryName(e.target.value)}
-                      placeholder="Enter custom category name"
-                      className="flex-1"
-                      disabled={isSubmitting}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsCustomCategory(false)}
-                      disabled={isSubmitting}
-                      className="w-full sm:w-auto"
-                    >
-                      Cancel
-                    </Button>
+                  <div className="space-y-3">
+                    <div className="space-y-2 min-h-[200px] max-h-[300px] overflow-y-auto">
+                      {currentCategories.map((category) => (
+                        <div key={category.id} className="rounded-md border p-3">
+                          {editingCategory?.id === category.id ? (
+                            <div className="space-y-3">
+                              {editError && (
+                                <Alert variant="destructive" className="py-2">
+                                  <AlertCircle className="h-3 w-3" />
+                                  <AlertDescription className="text-xs">{editError}</AlertDescription>
+                                </Alert>
+                              )}
+                              <Input
+                                value={customCategoryName}
+                                onChange={(e) => setCustomCategoryName(e.target.value)}
+                                disabled={isEditing}
+                                placeholder="Category name"
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={handleUpdateCategory}
+                                  className="flex-1"
+                                  disabled={isEditing}
+                                >
+                                  {isEditing ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                      Saving...
+                                    </>
+                                  ) : (
+                                    "Save"
+                                  )}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditingCategory(null)
+                                    setCustomCategoryName("")
+                                    setEditError(null)
+                                  }}
+                                  className="flex-1"
+                                  disabled={isEditing}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between">
+                              <p className="font-medium truncate flex-1 mr-2 text-sm sm:text-base">{category.name}</p>
+                              <div className="flex gap-1 flex-shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditCategory(category)}
+                                  disabled={isDeleting}
+                                  className="h-8 w-8"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  <span className="sr-only">Edit category</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteCategoryClick(category.id)}
+                                  disabled={isDeleting}
+                                  className="h-8 w-8"
+                                >
+                                  {isDeleting ? (
+                                    <Loader2 className="h-4 w-4 text-destructive animate-spin" />
+                                  ) : (
+                                    <Trash className="h-4 w-4 text-destructive" />
+                                  )}
+                                  <span className="sr-only">Delete category</span>
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
             </div>
-            <Button type="submit" className="ml-auto w-full sm:w-auto" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Adding...
-                </>
-              ) : (
-                <>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Category
-                </>
-              )}
-            </Button>
-          </form>
-
-          <div className="border-t pt-4">
-            <h3 className="mb-2 font-medium">Existing Categories</h3>
-            {categories.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No categories added yet.</p>
-            ) : (
-              <>
-                <div className="space-y-2 min-h-[200px] max-h-[250px] overflow-y-auto pr-1">
-                  {currentCategories.map((category) => (
-                    <div key={category.id} className="flex items-center justify-between rounded-md border p-3">
-                      {editingCategory?.id === category.id ? (
-                        <div className="flex flex-1 flex-col sm:flex-row items-center gap-2 w-full">
-                          <div className="w-full">
-                            {editError && (
-                              <Alert variant="destructive" className="mb-2 py-2 text-sm">
-                                <AlertCircle className="h-3 w-3" />
-                                <AlertDescription className="text-xs">{editError}</AlertDescription>
-                              </Alert>
-                            )}
-                            <Input
-                              value={customCategoryName}
-                              onChange={(e) => setCustomCategoryName(e.target.value)}
-                              className="flex-1"
-                              disabled={isEditing}
-                            />
-                          </div>
-                          <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                            <Button
-                              size="sm"
-                              onClick={handleUpdateCategory}
-                              className="flex-1 sm:flex-none"
-                              disabled={isEditing}
-                            >
-                              {isEditing ? (
-                                <>
-                                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                  Saving...
-                                </>
-                              ) : (
-                                "Save"
-                              )}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setEditingCategory(null)
-                                setCustomCategoryName("")
-                                setEditError(null)
-                              }}
-                              className="flex-1 sm:flex-none"
-                              disabled={isEditing}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="font-medium truncate max-w-[180px] sm:max-w-[300px]">{category.name}</p>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditCategory(category)}
-                              disabled={isDeleting}
-                            >
-                              <Edit className="h-4 w-4" />
-                              <span className="sr-only">Edit category</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteCategoryClick(category.id)}
-                              disabled={isDeleting}
-                            >
-                              {isDeleting ? (
-                                <Loader2 className="h-4 w-4 text-destructive animate-spin" />
-                              ) : (
-                                <Trash className="h-4 w-4 text-destructive" />
-                              )}
-                              <span className="sr-only">Delete category</span>
-                            </Button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-4">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="text-sm">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-
-                {/* delete dialog below */}
-
-                {deletingCategoryId && (
-                  <Dialog open={true}>
-                    <DialogContent className="sm:max-w-[425px] max-w-[95vw]">
-                      <DialogHeader>
-                        <DialogTitle>Confirm Deletion</DialogTitle>
-                      </DialogHeader>
-                      <div className="py-4">
-                        <p>Are you sure you want to delete this category?</p>
-                      </div>
-                      <div className="flex flex-col sm:flex-row justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => setDeletingCategoryId(null)}
-                          className="w-full sm:w-auto"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          onClick={async () => {
-                            await handleDeleteCategory(deletingCategoryId)
-                            setDeletingCategoryId(null)
-                          }}
-                          className="w-full sm:w-auto"
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                )}
-              </>
-            )}
           </div>
+
+          {/* Fixed Pagination at bottom */}
+          {totalPages > 1 && (
+            <div className="flex-shrink-0 border-t pt-4 mt-4">
+              <div className="flex items-center justify-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline ml-1">Previous</span>
+                </Button>
+                <span className="text-sm px-2">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  <span className="hidden sm:inline mr-1">Next</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Delete confirmation dialog */}
+        {deletingCategoryId && (
+          <Dialog open={true} onOpenChange={() => setDeletingCategoryId(null)}>
+            <DialogContent className="sm:max-w-[425px] max-w-[95vw]">
+              <DialogHeader>
+                <DialogTitle>Confirm Deletion</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete this category? This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setDeletingCategoryId(null)} className="w-full sm:w-auto">
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    await handleDeleteCategory(deletingCategoryId)
+                    setDeletingCategoryId(null)
+                  }}
+                  className="w-full sm:w-auto"
+                >
+                  Delete
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </DialogContent>
     </Dialog>
   )

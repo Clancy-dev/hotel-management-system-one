@@ -19,6 +19,7 @@ import { ImageUploader } from "@/components/rooms/image-uploader"
 import { X, AlertCircle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { toast } from "react-hot-toast"
+import { useCurrency } from "@/hooks/use-currency"
 
 interface RoomCategory {
   id: string
@@ -40,6 +41,7 @@ interface FormValues {
 }
 
 export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded }: AddRoomDialogProps) {
+  const { currency, formatPrice } = useCurrency()
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const [images, setImages] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -117,10 +119,14 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true)
     try {
+      // Convert price back to UGX (base currency) before saving
+      const priceInUGX =
+        currency.code === "UGX" ? Number.parseFloat(data.price) : Number.parseFloat(data.price) / currency.exchangeRate
+
       const result = await createRoom({
         roomNumber: data.roomNumber.trim(),
         categoryId: data.categoryId,
-        price: Number.parseFloat(data.price),
+        price: priceInUGX,
         description: data.description,
         images,
       })
@@ -286,21 +292,37 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
               {/* Price */}
               <div className="space-y-2">
                 <Label htmlFor="price" className="text-sm font-medium">
-                  Price (UGX)
+                  Price ({currency.code})
                 </Label>
-                <Input
-                  id="price"
-                  type="number"
-                  {...register("price", {
-                    required: "Price is required",
-                    validate: (value) =>
-                      (!isNaN(Number(value)) && Number(value) > 0) || "Please enter a valid price greater than 0",
-                  })}
-                  className={`${errors.price ? "border-red-500" : ""}`}
-                  disabled={isSubmitting}
-                  placeholder="Enter price"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground">
+                    {currency.symbol}
+                  </span>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    {...register("price", {
+                      required: "Price is required",
+                      validate: (value) =>
+                        (!isNaN(Number(value)) && Number(value) > 0) || "Please enter a valid price greater than 0",
+                    })}
+                    className={`pl-8 ${errors.price ? "border-red-500" : ""}`}
+                    disabled={isSubmitting}
+                    placeholder={`Enter price in ${currency.code}`}
+                  />
+                </div>
                 {errors.price && <p className="text-red-500 text-xs sm:text-sm">{errors.price.message}</p>}
+                {watchedValues.price && !isNaN(Number(watchedValues.price)) && Number(watchedValues.price) > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Preview:{" "}
+                    {formatPrice(
+                      currency.code === "UGX"
+                        ? Number(watchedValues.price)
+                        : Number(watchedValues.price) / currency.exchangeRate,
+                    )}
+                  </p>
+                )}
               </div>
 
               {/* Description */}
