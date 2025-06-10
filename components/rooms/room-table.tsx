@@ -32,6 +32,8 @@ import {
   LayoutGrid,
   GalleryHorizontal,
   Loader2,
+  Grid3X3,
+  List,
 } from "lucide-react"
 import { EditRoomDialog } from "@/components/rooms/edit-room-dialog"
 import { ImageGallery } from "@/components/rooms/image-gallery"
@@ -63,6 +65,7 @@ interface RoomTableProps {
 
 type SortField = "roomNumber" | "category" | "price" | "createdAt"
 type SortDirection = "asc" | "desc"
+type ViewMode = "table" | "grid"
 
 interface SortOption {
   label: string
@@ -87,8 +90,8 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
   const [rowsPerPage, setRowsPerPage] = useState(5)
   const [showRowsMenu, setShowRowsMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [roomToDelete, setRoomToDelete] = useState<string | null>(null);
- 
+  const [roomToDelete, setRoomToDelete] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>("table")
 
   // Update rooms when initialRooms changes
   useEffect(() => {
@@ -196,11 +199,9 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
     setIsEditOpen(true)
   }
 
-  
-
   const handleDelete = async (roomId: string) => {
-    setRoomToDelete(roomId);
-};
+    setRoomToDelete(roomId)
+  }
 
   const handleViewGallery = (room: Room) => {
     setSelectedRoom(room)
@@ -219,196 +220,310 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
   const currentRooms = filteredRooms.slice(indexOfFirstRoom, indexOfLastRoom)
   const totalPages = Math.ceil(filteredRooms.length / rowsPerPage)
 
+  // Grid Card Component
+  const RoomCard = ({ room }: { room: Room }) => (
+    <div className="bg-white border rounded-lg p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow">
+      <div className="aspect-video w-full overflow-hidden rounded-md bg-muted">
+        {room.images && room.images.length > 0 ? (
+          <img
+            src={room.images[0] || "/placeholder.svg"}
+            alt={`Room ${room.roomNumber}`}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <ImageIcon className="h-12 w-12 text-muted-foreground" />
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-lg">Room {room.roomNumber}</h3>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreHorizontal className="h-4 w-4" />
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleViewDetails(room)}>
+                <Eye className="mr-2 h-4 w-4" />
+                View Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEdit(room)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleViewGallery(room)}>
+                <GalleryHorizontal className="mr-2 h-4 w-4" />
+                View Images
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleDelete(room.id)} className="text-destructive">
+                <Trash className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="space-y-1 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Category:</span>
+            <span>{getCategoryName(room.categoryId)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Price:</span>
+            <span className="font-medium">{formatCurrency(room.price, "UGX")}</span>
+          </div>
+        </div>
+
+        {room.description && <p className="text-sm text-muted-foreground line-clamp-2">{room.description}</p>}
+      </div>
+    </div>
+  )
+
   return (
     <>
-      <div className="mb-4 flex flex-col sm:flex-row gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+      {/* Search and Controls */}
+      <div className="space-y-4 mb-6">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search rooms by number, category, or description..."
-            className="pl-8"
+            className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="flex gap-2">
-          {/* Rows per page selector */}
-          <div className="relative">
-            <button
-              type="button"
-              className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              onClick={() => setShowRowsMenu(!showRowsMenu)}
-            >
-              <span className="flex items-center">
-                <LayoutGrid className="h-4 w-4 mr-2" />
-                <span>No of Rows</span>
-              </span>
-            </button>
+        {/* Controls Row */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-2">
+            {/* View Mode Toggle */}
+            <div className="flex border rounded-md">
+              <Button
+                variant={viewMode === "table" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("table")}
+                className="rounded-r-none"
+              >
+                <List className="h-4 w-4" />
+                <span className="hidden sm:inline ml-2">Table</span>
+              </Button>
+              <Button
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+                className="rounded-l-none"
+              >
+                <Grid3X3 className="h-4 w-4" />
+                <span className="hidden sm:inline ml-2">Grid</span>
+              </Button>
+            </div>
 
-            {showRowsMenu && (
-              <div className="absolute right-0 z-50 mt-1 w-36 overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
-                <div className="p-1">
-                  {[5, 10, 15, 20, 50, 100].map((value) => (
-                    <div
-                      key={value}
-                      className={`relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${
-                        rowsPerPage === value ? "bg-accent text-accent-foreground" : ""
-                      }`}
-                      onClick={() => {
-                        setRowsPerPage(value)
-                        setShowRowsMenu(false)
-                        setCurrentPage(1) // Reset to first page when changing rows per page
-                      }}
-                    >
-                      {value} rows
-                    </div>
-                  ))}
+            {/* Rows per page selector */}
+            <div className="relative">
+              <button
+                type="button"
+                className="flex h-9 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                onClick={() => setShowRowsMenu(!showRowsMenu)}
+              >
+                <span className="flex items-center">
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Rows: </span>
+                  <span>{rowsPerPage}</span>
+                </span>
+              </button>
+
+              {showRowsMenu && (
+                <div className="absolute left-0 z-50 mt-1 w-32 overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+                  <div className="p-1">
+                    {[5, 10, 15, 20, 50, 100].map((value) => (
+                      <div
+                        key={value}
+                        className={`relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${
+                          rowsPerPage === value ? "bg-accent text-accent-foreground" : ""
+                        }`}
+                        onClick={() => {
+                          setRowsPerPage(value)
+                          setShowRowsMenu(false)
+                          setCurrentPage(1)
+                        }}
+                      >
+                        {value} rows
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+
+            {/* Sort selector */}
+            <div className="relative">
+              <button
+                type="button"
+                className="flex h-9 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                onClick={() => setShowSortMenu(!showSortMenu)}
+              >
+                <span className="flex items-center">
+                  <ArrowUpDown className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Sort</span>
+                </span>
+              </button>
+
+              {showSortMenu && (
+                <div className="absolute right-0 z-50 mt-1 w-56 overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+                  <div className="p-1">
+                    {sortOptions.map((option, index) => (
+                      <div
+                        key={index}
+                        className={`relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${
+                          sortField === option.field && sortDirection === option.direction
+                            ? "bg-accent text-accent-foreground"
+                            : ""
+                        }`}
+                        onClick={() => handleSortSelect(option)}
+                      >
+                        <span className="flex items-center justify-between w-full">
+                          {option.label}
+                          {option.icon}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Sort selector */}
-          <div className="relative">
-            <button
-              type="button"
-              className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              onClick={() => setShowSortMenu(!showSortMenu)}
-            >
-              <span className="flex items-center">
-                <ArrowUpDown className="h-4 w-4 mr-2" />
-                <span>Sort</span>
-              </span>
-            </button>
-
-            {showSortMenu && (
-              <div className="absolute right-0 z-50 mt-1 w-56 overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
-                <div className="p-1">
-                  {sortOptions.map((option, index) => (
-                    <div
-                      key={index}
-                      className={`relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${
-                        sortField === option.field && sortDirection === option.direction
-                          ? "bg-accent text-accent-foreground"
-                          : ""
-                      }`}
-                      onClick={() => handleSortSelect(option)}
-                    >
-                      <span className="flex items-center justify-between w-full">
-                        {option.label}
-                        {option.icon}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+          {/* Results Info */}
+          <div className="text-sm text-muted-foreground">
+            {filteredRooms.length} room{filteredRooms.length !== 1 ? "s" : ""} found
           </div>
         </div>
       </div>
 
-      <div className="rounded-md border overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[80px]">Image</TableHead>
-              <TableHead>Room Number</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Price (UGX)</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="w-[60px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {currentRooms.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
-                  {searchTerm.trim() !== "" ? `No rooms found matching "${searchTerm}"` : "No rooms found."}
-                </TableCell>
-              </TableRow>
-            ) : (
-              currentRooms.map((room) => (
-                <TableRow key={room.id}>
-                  <TableCell>
-                    {room.images && room.images.length > 0 ? (
-                      <img
-                        src={room.images[0] || "/placeholder.svg"}
-                        alt={`Room ${room.roomNumber}`}
-                        className="h-12 w-12 object-cover rounded-md"
-                      />
-                    ) : (
-                      <div className="h-12 w-12 bg-muted flex items-center justify-center rounded-md">
-                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">{room.roomNumber}</TableCell>
-                  <TableCell>{getCategoryName(room.categoryId)}</TableCell>
-                  <TableCell>{formatCurrency(room.price, "UGX")}</TableCell>
-                  <TableCell className="max-w-[150px] whitespace-nowrap overflow-hidden text-ellipsis">
-                    {truncateDescription(room.description)}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Open menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewDetails(room)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEdit(room)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleViewGallery(room)}>
-                          <GalleryHorizontal className="mr-2 h-4 w-4" />
-                          View Images
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(room.id)} className="text-destructive">
-                          <Trash className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+      {/* Content Area */}
+      {viewMode === "table" ? (
+        <div className="rounded-md border">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[80px]">Image</TableHead>
+                  <TableHead className="min-w-[120px]">Room Number</TableHead>
+                  <TableHead className="min-w-[120px]">Category</TableHead>
+                  <TableHead className="min-w-[120px]">Price (UGX)</TableHead>
+                  <TableHead className="min-w-[150px] hidden md:table-cell">Description</TableHead>
+                  <TableHead className="w-[60px]">Actions</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {currentRooms.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center">
+                      {searchTerm.trim() !== "" ? `No rooms found matching "${searchTerm}"` : "No rooms found."}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  currentRooms.map((room) => (
+                    <TableRow key={room.id}>
+                      <TableCell>
+                        {room.images && room.images.length > 0 ? (
+                          <img
+                            src={room.images[0] || "/placeholder.svg"}
+                            alt={`Room ${room.roomNumber}`}
+                            className="h-12 w-12 object-cover rounded-md"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 bg-muted flex items-center justify-center rounded-md">
+                            <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">{room.roomNumber}</TableCell>
+                      <TableCell>{getCategoryName(room.categoryId)}</TableCell>
+                      <TableCell>{formatCurrency(room.price, "UGX")}</TableCell>
+                      <TableCell className="hidden md:table-cell max-w-[150px] whitespace-nowrap overflow-hidden text-ellipsis">
+                        {truncateDescription(room.description)}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewDetails(room)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(room)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewGallery(room)}>
+                              <GalleryHorizontal className="mr-2 h-4 w-4" />
+                              View Images
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(room.id)} className="text-destructive">
+                              <Trash className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {currentRooms.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-muted-foreground">
+              {searchTerm.trim() !== "" ? `No rooms found matching "${searchTerm}"` : "No rooms found."}
+            </div>
+          ) : (
+            currentRooms.map((room) => <RoomCard key={room.id} room={room} />)
+          )}
+        </div>
+      )}
 
       {/* Pagination Controls */}
       {filteredRooms.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-2">
-          <div className="text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
+          <div className="text-sm text-muted-foreground order-2 sm:order-1">
             Showing {indexOfFirstRoom + 1}-{Math.min(indexOfLastRoom, filteredRooms.length)} of {filteredRooms.length}{" "}
-            rooms ({rowsPerPage} per page)
+            rooms
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 order-1 sm:order-2">
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4" />
+              <span className="hidden sm:inline ml-1">Previous</span>
             </Button>
-            <span className="text-sm">
+            <span className="text-sm px-2">
               Page {currentPage} of {totalPages || 1}
             </span>
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages || totalPages === 0}
             >
+              <span className="hidden sm:inline mr-1">Next</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -417,7 +532,7 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
 
       {/* Room Details Dialog */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="sm:max-w-[500px] max-w-[90vw] max-h-[90vh] flex flex-col">
+        <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[90vh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Room Details</DialogTitle>
             <DialogDescription>Detailed information about the room.</DialogDescription>
@@ -431,50 +546,61 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
                       <img
                         src={selectedRoom.images[0] || "/placeholder.svg"}
                         alt={`Room ${selectedRoom.roomNumber}`}
-                        className="w-full h-48 object-cover rounded-md"
+                        className="w-full h-48 sm:h-64 object-cover rounded-md"
                       />
                     </div>
                   ) : (
-                    <div className="w-full h-48 bg-muted flex items-center justify-center rounded-md mb-4">
+                    <div className="w-full h-48 sm:h-64 bg-muted flex items-center justify-center rounded-md mb-4">
                       <ImageIcon className="h-16 w-16 text-muted-foreground" />
                     </div>
                   )}
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="font-medium">Room Number:</div>
-                    <div className="col-span-2">{selectedRoom.roomNumber}</div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="font-medium">Category:</div>
-                    <div className="col-span-2">{getCategoryName(selectedRoom.categoryId)}</div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="font-medium">Price:</div>
-                    <div className="col-span-2">{formatCurrency(selectedRoom.price, "UGX")}</div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="font-medium">Description:</div>
-                    <div className="col-span-2">{selectedRoom.description}</div>
-                  </div>
-                  {selectedRoom.createdAt && (
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="font-medium">Created:</div>
-                      <div className="col-span-2">{new Date(selectedRoom.createdAt).toLocaleString()}</div>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+                      <div className="font-medium">Room Number:</div>
+                      <div className="sm:col-span-2">{selectedRoom.roomNumber}</div>
                     </div>
-                  )}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+                      <div className="font-medium">Category:</div>
+                      <div className="sm:col-span-2">{getCategoryName(selectedRoom.categoryId)}</div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+                      <div className="font-medium">Price:</div>
+                      <div className="sm:col-span-2">{formatCurrency(selectedRoom.price, "UGX")}</div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+                      <div className="font-medium">Description:</div>
+                      <div className="sm:col-span-2">{selectedRoom.description}</div>
+                    </div>
+                    {selectedRoom.createdAt && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+                        <div className="font-medium">Created:</div>
+                        <div className="sm:col-span-2">{new Date(selectedRoom.createdAt).toLocaleString()}</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <DialogFooter className="flex-shrink-0 pt-4 border-t mt-2">
-                <div className="flex flex-wrap justify-end gap-2 w-full">
-                  <Button variant="outline" onClick={() => handleViewGallery(selectedRoom)}>
+                <div className="flex flex-col sm:flex-row justify-end gap-2 w-full">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleViewGallery(selectedRoom)}
+                    className="w-full sm:w-auto"
+                  >
                     <GalleryHorizontal className="mr-2 h-4 w-4" />
                     View Images
                   </Button>
-                  <Button variant="outline" onClick={() => handleEdit(selectedRoom)}>
+                  <Button variant="outline" onClick={() => handleEdit(selectedRoom)} className="w-full sm:w-auto">
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
                   </Button>
-                  <Button variant="destructive" onClick={() => setRoomToDelete(selectedRoom.id)} disabled={isDeleting}>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setRoomToDelete(selectedRoom.id)}
+                    disabled={isDeleting}
+                    className="w-full sm:w-auto"
+                  >
                     {isDeleting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -514,58 +640,56 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
         <ImageGallery images={selectedRoom.images || []} open={isGalleryOpen} onOpenChange={setIsGalleryOpen} />
       )}
 
-
-
-
       {roomToDelete && (
-  <Dialog open={true}>
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Confirm Deletion</DialogTitle>
-      </DialogHeader>
-      <div className="py-4">
-        <p>Are you sure you want to delete this room?</p>
-      </div>
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={() => setRoomToDelete(null)}>
-          Cancel
-        </Button>
-        <Button
-          variant="destructive"
-          onClick={async () => {
-            setIsDeleting(true);
-            try {
-              const result = await deleteRoom(roomToDelete);
-              if (result.success) {
-                setRooms(rooms.filter((room) => room.id !== roomToDelete));
-                toast.success("The room has been successfully deleted");
-                if (isDetailsOpen && selectedRoom?.id === roomToDelete) {
-                  setIsDetailsOpen(false);
-                }
-              } else {
-                toast.error("Failed to delete room");
-              }
-            } catch (error) {
-              toast.error("An unexpected error occurred");
-            } finally {
-              setIsDeleting(false);
-              setRoomToDelete(null);
-            }
-          }}
-        >
-          {isDeleting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Deleting...
-            </>
-          ) : (
-            "Delete"
-          )}
-        </Button>
-      </div>
-    </DialogContent>
-  </Dialog>
-)}
+        <Dialog open={true} onOpenChange={() => setRoomToDelete(null)}>
+          <DialogContent className="sm:max-w-[425px] max-w-[95vw]">
+            <DialogHeader>
+              <DialogTitle>Confirm Deletion</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this room? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setRoomToDelete(null)} className="w-full sm:w-auto">
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  setIsDeleting(true)
+                  try {
+                    const result = await deleteRoom(roomToDelete)
+                    if (result.success) {
+                      setRooms(rooms.filter((room) => room.id !== roomToDelete))
+                      toast.success("The room has been successfully deleted")
+                      if (isDetailsOpen && selectedRoom?.id === roomToDelete) {
+                        setIsDetailsOpen(false)
+                      }
+                    } else {
+                      toast.error("Failed to delete room")
+                    }
+                  } catch (error) {
+                    toast.error("An unexpected error occurred")
+                  } finally {
+                    setIsDeleting(false)
+                    setRoomToDelete(null)
+                  }
+                }}
+                className="w-full sm:w-auto"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }
