@@ -126,27 +126,24 @@ export default function CategoriesFormPopUp({open,onOpenChange,initialCategories
       };
     
       const handleDeleteCategory = async (id: string) => {
-        if (confirm("Are you sure you want to delete this category?")) {
-          setIsDeleting(true)
-          try {
-            const result = await deleteCategory(id)
-    
-            if (result.success) {
-              setCategories(categories.filter((category) => category.id !== id))
-              toast.success("Category deleted successfully")
-              if (onCategoriesChanged) {
-                onCategoriesChanged()
-              }
-            } else {
-              toast.error(result.error || "Failed to delete category")
-            }
-          } catch (error) {
-            toast.error("An unexpected error occurred")
-          } finally {
-            setIsDeleting(false)
-          }
-        }
+  setIsDeleting(true)
+  try {
+    const result = await deleteCategory(id)
+    if (result.success) {
+      setCategories(categories.filter((category) => category.id !== id))
+      toast.success("Category deleted successfully")
+      if (onCategoriesChanged) {
+        onCategoriesChanged()
       }
+    } else {
+      toast.error(result.error || "Failed to delete category")
+    }
+  } catch (error) {
+    toast.error("An unexpected error occurred")
+  } finally {
+    setIsDeleting(false)
+  }
+}
     
       const handleEditCategory = (category: RoomCategory) => {
         setEditingCategory(category)
@@ -425,35 +422,38 @@ export default function CategoriesFormPopUp({open,onOpenChange,initialCategories
                       </div>
                     )}
 
-                    {deletingCategoryId && (
-                      <Dialog open={true}>
-                      <DialogContent>
-                      <DialogHeader>
-                      <DialogTitle>Confirm Deletion</DialogTitle>
-                      </DialogHeader>
-                  <div className="py-4">
-                      <p>Are you sure you want to delete this category?</p>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setDeletingCategoryId(null)}
-                   >
-                  Cancel
-                  </Button>
-                  <Button
-                   variant="destructive"
-                   onClick={async () => {
-                   await handleDeleteCategory(deletingCategoryId);
-                   setDeletingCategoryId(null);
-                  }}
-                  >
-                  Delete
-                </Button>
+                    {/* delete dialog below */}
+
+{deletingCategoryId && (
+  <Dialog open={true}>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Confirm Deletion</DialogTitle>
+      </DialogHeader>
+      <div className="py-4">
+        <p>Are you sure you want to delete this category?</p>
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button
+          variant="outline"
+          onClick={() => setDeletingCategoryId(null)}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="destructive"
+          onClick={async () => {
+            await handleDeleteCategory(deletingCategoryId);
+            setDeletingCategoryId(null);
+          }}
+        >
+          Delete
+        </Button>
       </div>
     </DialogContent>
   </Dialog>
 )}
+
                   </>
                 )}
               </div>
