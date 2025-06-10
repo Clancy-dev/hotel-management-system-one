@@ -17,7 +17,7 @@ export default function SettingsPage() {
   // Group currencies by region
   const regions = [...new Set(availableCurrencies.map((c) => c.region))].sort()
 
-//   x
+
   const handleSaveCurrency = () => {
     setCurrency(selectedCurrency as any)
     toast.success(`Currency changed to ${selectedCurrency}`)
