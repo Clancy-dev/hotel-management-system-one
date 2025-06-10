@@ -115,35 +115,41 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
     toast.success("All form fields have been cleared")
   }
 
-  const onSubmit = async (data: FormValues) => {
-    setIsSubmitting(true)
-
-    try {
-      const result = await createRoom({
-        roomNumber: data.roomNumber.trim(),
-        categoryId: data.categoryId,
-        price: Number.parseFloat(data.price),
-        description: data.description,
-        images,
-      })
-
-      if (result.success) {
-        resetFormData()
-        onOpenChange(false)
-        toast.success("Room has been successfully added")
-
-        if (onRoomAdded && result.data) {
-          onRoomAdded(result.data)
-        }
-      } else {
-        toast.success("Failed to add room")
+ const onSubmit = async (data: FormValues) => {
+  setIsSubmitting(true);
+  try {
+    const result = await createRoom({
+      roomNumber: data.roomNumber.trim(),
+      categoryId: data.categoryId,
+      price: Number.parseFloat(data.price),
+      description: data.description,
+      images,
+    });
+    if (result.success) {
+      // Reset form without showing the "All form fields have been cleared" toast
+      reset({
+        roomNumber: "",
+        categoryId: "",
+        price: "",
+        description: "",
+      });
+      setImages([]);
+      localStorage.removeItem("addRoomFormData");
+      onOpenChange(false);
+      toast.success("Room has been successfully added");
+      if (onRoomAdded && result.data) {
+        onRoomAdded(result.data);
       }
-    } catch (error) {
-      toast.success("An unexpected error occurred")
-    } finally {
-      setIsSubmitting(false)
+    } else {
+      toast.error("Failed to add room"); // Also changed toast.success to toast.error here for better UX
     }
+  } catch (error) {
+    toast.error("An unexpected error occurred"); // Also changed toast.success to toast.error here for better UX
+  } finally {
+    setIsSubmitting(false);
   }
+};
+
 
   const handleAddImage = (url: string) => {
     if (url && !images.includes(url)) {
