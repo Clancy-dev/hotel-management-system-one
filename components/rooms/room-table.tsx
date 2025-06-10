@@ -36,7 +36,7 @@ import {
 import { EditRoomDialog } from "@/components/rooms/edit-room-dialog"
 import { ImageGallery } from "@/components/rooms/image-gallery"
 import { deleteRoom } from "@/actions/room"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "react-hot-toast"
 
 // Define types based on Prisma models
 interface RoomCategory {
@@ -87,7 +87,7 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
   const [rowsPerPage, setRowsPerPage] = useState(5)
   const [showRowsMenu, setShowRowsMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const { toast } = useToast()
+ 
 
   // Update rooms when initialRooms changes
   useEffect(() => {
@@ -204,28 +204,20 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
         if (result.success) {
           // Remove the room from the local state
           setRooms(rooms.filter((room) => room.id !== roomId))
-          toast({
-            title: "Room deleted",
-            description: "The room has been successfully deleted",
-          })
+          toast.success("The room has been successfully deleted")
+          
 
           // Close the details dialog if it's open
           if (isDetailsOpen && selectedRoom?.id === roomId) {
             setIsDetailsOpen(false)
           }
         } else {
-          toast({
-            title: "Error",
-            description: result.error || "Failed to delete room",
-            variant: "destructive",
-          })
+          toast.error("Failed to delete room")
+          
         }
       } catch (error) {
-        toast({
-          title: "Error",
-          description: "An unexpected error occurred",
-          variant: "destructive",
-        })
+        toast.error("An unexpected error occurred")
+        
       } finally {
         setIsDeleting(false)
       }
