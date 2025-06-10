@@ -18,7 +18,7 @@ import { createRoom } from "@/actions/room"
 import { ImageUploader } from "@/components/rooms/image-uploader"
 import { X, AlertCircle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "react-hot-toast"
 
 interface RoomCategory {
   id: string
@@ -43,7 +43,7 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const [images, setImages] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { toast } = useToast()
+ 
 
   const {
     register,
@@ -112,10 +112,7 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
     })
     setImages([])
     localStorage.removeItem("addRoomFormData")
-    toast({
-      title: "Form cleared",
-      description: "All form fields have been cleared",
-    })
+    toast.success("All form fields have been cleared")
   }
 
   const onSubmit = async (data: FormValues) => {
@@ -133,28 +130,16 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
       if (result.success) {
         resetFormData()
         onOpenChange(false)
-        toast({
-          title: "Success!",
-          description: "Room has been successfully added",
-          variant: "default",
-        })
+        toast.success("Room has been successfully added")
 
         if (onRoomAdded && result.data) {
           onRoomAdded(result.data)
         }
       } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to add room",
-          variant: "destructive",
-        })
+        toast.success("Failed to add room")
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      })
+      toast.success("An unexpected error occurred")
     } finally {
       setIsSubmitting(false)
     }
