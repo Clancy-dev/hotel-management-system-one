@@ -87,6 +87,7 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
   const [rowsPerPage, setRowsPerPage] = useState(5)
   const [showRowsMenu, setShowRowsMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [roomToDelete, setRoomToDelete] = useState<string | null>(null);
  
 
   // Update rooms when initialRooms changes
@@ -195,34 +196,11 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
     setIsEditOpen(true)
   }
 
+  
+
   const handleDelete = async (roomId: string) => {
-    if (confirm("Are you sure you want to delete this room?")) {
-      setIsDeleting(true)
-      try {
-        const result = await deleteRoom(roomId)
-
-        if (result.success) {
-          // Remove the room from the local state
-          setRooms(rooms.filter((room) => room.id !== roomId))
-          toast.success("The room has been successfully deleted")
-          
-
-          // Close the details dialog if it's open
-          if (isDetailsOpen && selectedRoom?.id === roomId) {
-            setIsDetailsOpen(false)
-          }
-        } else {
-          toast.error("Failed to delete room")
-          
-        }
-      } catch (error) {
-        toast.error("An unexpected error occurred")
-        
-      } finally {
-        setIsDeleting(false)
-      }
-    }
-  }
+    setRoomToDelete(roomId);
+};
 
   const handleViewGallery = (room: Room) => {
     setSelectedRoom(room)
@@ -496,7 +474,7 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
                   </Button>
-                  <Button variant="destructive" onClick={() => handleDelete(selectedRoom.id)} disabled={isDeleting}>
+                  <Button variant="destructive" onClick={() => setRoomToDelete(selectedRoom.id)} disabled={isDeleting}>
                     {isDeleting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -535,6 +513,59 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
       {selectedRoom && (
         <ImageGallery images={selectedRoom.images || []} open={isGalleryOpen} onOpenChange={setIsGalleryOpen} />
       )}
+
+
+
+
+      {roomToDelete && (
+  <Dialog open={true}>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Confirm Deletion</DialogTitle>
+      </DialogHeader>
+      <div className="py-4">
+        <p>Are you sure you want to delete this room?</p>
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={() => setRoomToDelete(null)}>
+          Cancel
+        </Button>
+        <Button
+          variant="destructive"
+          onClick={async () => {
+            setIsDeleting(true);
+            try {
+              const result = await deleteRoom(roomToDelete);
+              if (result.success) {
+                setRooms(rooms.filter((room) => room.id !== roomToDelete));
+                toast.success("The room has been successfully deleted");
+                if (isDetailsOpen && selectedRoom?.id === roomToDelete) {
+                  setIsDetailsOpen(false);
+                }
+              } else {
+                toast.error("Failed to delete room");
+              }
+            } catch (error) {
+              toast.error("An unexpected error occurred");
+            } finally {
+              setIsDeleting(false);
+              setRoomToDelete(null);
+            }
+          }}
+        >
+          {isDeleting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Deleting...
+            </>
+          ) : (
+            "Delete"
+          )}
+        </Button>
+      </div>
+    </DialogContent>
+  </Dialog>
+)}
     </>
   )
 }
