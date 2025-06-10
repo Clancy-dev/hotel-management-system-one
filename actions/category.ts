@@ -112,20 +112,6 @@ export async function updateCategory(id: string, data: RoomCategoryProps) {
 
 export async function deleteCategory(id: string) {
   try {
-    // Check if any rooms are using this category
-    // const roomsUsingCategory = await db.room.findFirst({
-    //   where: {
-    //     categoryId: id,
-    //   },
-    // })
-
-    // if (roomsUsingCategory) {
-    //   return {
-    //     success: false,
-    //     error: "Cannot delete category because it is being used by one or more rooms",
-    //   }
-    // }
-
     await db.roomCategory.delete({
       where: { id },
     })

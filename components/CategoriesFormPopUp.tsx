@@ -7,8 +7,9 @@ import { createCategory, deleteCategory, getCategories, updateCategory } from '@
 import { Alert, AlertDescription } from './ui/alert'
 import { Label } from './ui/label'
 import { Input } from './ui/input'
-import { useToast } from '@/hooks/use-toast'
+
 import { RoomCategory } from '@prisma/client'
+import { toast } from "react-hot-toast"
 
 export type RoomCategoryProps = {
   id: string
@@ -37,7 +38,6 @@ export default function CategoriesFormPopUp({open,onOpenChange,initialCategories
       const [isSubmitting, setIsSubmitting] = useState(false)
       const [isDeleting, setIsDeleting] = useState(false)
       const [isEditing, setIsEditing] = useState(false)
-      const { toast } = useToast()
       const categoriesPerPage = 5
     
       // Predefined category options
@@ -70,18 +70,12 @@ export default function CategoriesFormPopUp({open,onOpenChange,initialCategories
           if (result.success) {
             setCategories(result.data ?? [])
           } else {
-            toast({
-              title: "Error",
-              description: result.error || "Failed to fetch categories",
-              variant: "destructive",
-            })
+           toast.error("Failed to show Categories")
           }
         } catch (error) {
-          toast({
-            title: "Error",
-            description: "An unexpected error occurred",
-            variant: "destructive",
-          })
+          toast.error("An unexpected error occurred while showing categories")
+          console.error("Error fetching categories:", error)
+          setError("An unexpected error occurred while fetching categories")
         }
       }
     
@@ -111,14 +105,12 @@ export default function CategoriesFormPopUp({open,onOpenChange,initialCategories
             setNewCategoryName("")
             setCustomCategoryName("")
             setIsCustomCategory(false)
-            toast({
-              title: "Category added",
-              description: "The category has been successfully added",
-            })
+            toast.success("Category created successfully")
             if (onCategoriesChanged) {
               onCategoriesChanged()
             }
           } else {
+            toast.error("Failed to create category")
             setError(result.error || "Failed to add category")
           }
         } catch (error) {
@@ -136,26 +128,15 @@ export default function CategoriesFormPopUp({open,onOpenChange,initialCategories
     
             if (result.success) {
               setCategories(categories.filter((category) => category.id !== id))
-              toast({
-                title: "Category deleted",
-                description: "The category has been successfully deleted",
-              })
+              toast.success("Category deleted successfully")
               if (onCategoriesChanged) {
                 onCategoriesChanged()
               }
             } else {
-              toast({
-                title: "Error",
-                description: result.error || "Failed to delete category",
-                variant: "destructive",
-              })
+              toast.error(result.error || "Failed to delete category")
             }
           } catch (error) {
-            toast({
-              title: "Error",
-              description: "An unexpected error occurred",
-              variant: "destructive",
-            })
+            toast.error("An unexpected error occurred")
           } finally {
             setIsDeleting(false)
           }
@@ -190,10 +171,7 @@ export default function CategoriesFormPopUp({open,onOpenChange,initialCategories
             setCategories(categories.map((cat) => (cat.id === result.data.id ? result.data : cat)))
             setEditingCategory(null)
             setCustomCategoryName("")
-            toast({
-              title: "Category updated",
-              description: "The category has been successfully updated",
-            })
+            toast.success("Category updated successfully")
             if (onCategoriesChanged) {
               onCategoriesChanged()
             }
