@@ -37,6 +37,7 @@ export default function CategoriesFormPopUp({open,onOpenChange,initialCategories
       const [editError, setEditError] = useState<string | null>(null)
       const [isSubmitting, setIsSubmitting] = useState(false)
       const [isDeleting, setIsDeleting] = useState(false)
+      const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
       const [isEditing, setIsEditing] = useState(false)
       const categoriesPerPage = 5
     
@@ -119,6 +120,10 @@ export default function CategoriesFormPopUp({open,onOpenChange,initialCategories
           setIsSubmitting(false)
         }
       }
+
+      const handleDeleteCategoryClick = (id: string) => {
+        setDeletingCategoryId(id);
+      };
     
       const handleDeleteCategory = async (id: string) => {
         if (confirm("Are you sure you want to delete this category?")) {
@@ -380,7 +385,7 @@ export default function CategoriesFormPopUp({open,onOpenChange,initialCategories
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => handleDeleteCategory(category.id)}
+                                   onClick={() => handleDeleteCategoryClick(category.id)}
                                   disabled={isDeleting}
                                 >
                                   {isDeleting ? (
@@ -419,6 +424,36 @@ export default function CategoriesFormPopUp({open,onOpenChange,initialCategories
                         </Button>
                       </div>
                     )}
+
+                    {deletingCategoryId && (
+                      <Dialog open={true}>
+                      <DialogContent>
+                      <DialogHeader>
+                      <DialogTitle>Confirm Deletion</DialogTitle>
+                      </DialogHeader>
+                  <div className="py-4">
+                      <p>Are you sure you want to delete this category?</p>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setDeletingCategoryId(null)}
+                   >
+                  Cancel
+                  </Button>
+                  <Button
+                   variant="destructive"
+                   onClick={async () => {
+                   await handleDeleteCategory(deletingCategoryId);
+                   setDeletingCategoryId(null);
+                  }}
+                  >
+                  Delete
+                </Button>
+      </div>
+    </DialogContent>
+  </Dialog>
+)}
                   </>
                 )}
               </div>
