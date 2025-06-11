@@ -7,6 +7,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { CurrencyProvider } from "@/hooks/use-currency";
 import { PolicyProvider } from "@/hooks/use-policy";
+import { LanguageProvider } from "@/hooks/use-language";
 
 export default function RootLayout({
   children,
@@ -16,7 +17,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <PolicyProvider>
+        <LanguageProvider>
+           <PolicyProvider>
           <CurrencyProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange={false}>
             <Toaster position="top-right" />
@@ -27,6 +29,8 @@ export default function RootLayout({
           </ThemeProvider>
         </CurrencyProvider>
         </PolicyProvider>
+        </LanguageProvider>
+       
         
       </body>
     </html>
