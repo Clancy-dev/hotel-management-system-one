@@ -13,6 +13,7 @@ import {
   Eye,
   MoreHorizontal,
   Users,
+  Search,
 } from "lucide-react"
 import { Button } from "./ui/button"
 import {
@@ -76,6 +77,8 @@ export default function CategoriesFormPopUp({
 }: CategoriesFormPopUpProps) {
   const { formatPrice } = useCurrency()
   const [categories, setCategories] = useState<CategoryWithCount[]>([])
+  const [filteredCategories, setFilteredCategories] = useState<CategoryWithCount[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
   const [newCategoryName, setNewCategoryName] = useState("")
   const [customCategoryName, setCustomCategoryName] = useState("")
   const [isCustomCategory, setIsCustomCategory] = useState(false)
@@ -96,6 +99,10 @@ export default function CategoriesFormPopUp({
   const [isDeletingAllRooms, setIsDeletingAllRooms] = useState(false)
   const [isDeletingRoom, setIsDeletingRoom] = useState(false)
   const [deletingRoomId, setDeletingRoomId] = useState<string | null>(null)
+
+  // Pagination for rooms in category details
+  const [roomsCurrentPage, setRoomsCurrentPage] = useState(1)
+  const roomsPerPage = 5
 
   const categoriesPerPage = 5
 
@@ -118,10 +125,24 @@ export default function CategoriesFormPopUp({
     if (open) {
       fetchCategories()
       setCurrentPage(1)
+      setSearchTerm("")
       setError(null)
       setEditError(null)
     }
   }, [open])
+
+  // Filter categories based on search term
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredCategories(categories)
+    } else {
+      const filtered = categories.filter((category) =>
+        category.name.toLowerCase().includes(searchTerm.toLowerCase().trim()),
+      )
+      setFilteredCategories(filtered)
+    }
+    setCurrentPage(1) // Reset to first page when search changes
+  }, [categories, searchTerm])
 
   const fetchCategories = async () => {
     try {
@@ -246,6 +267,7 @@ export default function CategoriesFormPopUp({
   const handleViewCategoryDetails = async (category: CategoryWithCount) => {
     setIsLoadingDetails(true)
     setIsCategoryDetailsOpen(true)
+    setRoomsCurrentPage(1) // Reset rooms pagination
 
     try {
       const result = await getCategoryWithRooms(category.id)
@@ -322,11 +344,17 @@ export default function CategoriesFormPopUp({
     setShowCategoryDropdown(false)
   }
 
-  // Pagination logic
+  // Pagination logic for categories
   const indexOfLastCategory = currentPage * categoriesPerPage
   const indexOfFirstCategory = indexOfLastCategory - categoriesPerPage
-  const currentCategories = categories.slice(indexOfFirstCategory, indexOfLastCategory)
-  const totalPages = Math.ceil(categories.length / categoriesPerPage)
+  const currentCategories = filteredCategories.slice(indexOfFirstCategory, indexOfLastCategory)
+  const totalPages = Math.ceil(filteredCategories.length / categoriesPerPage)
+
+  // Pagination logic for rooms in category details
+  const indexOfLastRoom = roomsCurrentPage * roomsPerPage
+  const indexOfFirstRoom = indexOfLastRoom - roomsPerPage
+  const currentRooms = selectedCategory?.rooms.slice(indexOfFirstRoom, indexOfLastRoom) || []
+  const totalRoomsPages = Math.ceil((selectedCategory?.rooms.length || 0) / roomsPerPage)
 
   return (
     <>
@@ -443,11 +471,29 @@ export default function CategoriesFormPopUp({
                 </form>
 
                 <div className="border-t pt-4">
-                  <h3 className="mb-3 font-medium text-sm sm:text-base">Existing Categories</h3>
-                  {categories.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-8 text-center">No categories added yet.</p>
+                  <div className="space-y-3">
+                    <h3 className="font-medium text-sm sm:text-base">Existing Categories</h3>
+
+                    {/* Search Bar for Categories */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search categories..."
+                        className="pl-10"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {filteredCategories.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-8 text-center">
+                      {searchTerm.trim() !== ""
+                        ? `No categories found matching "${searchTerm}"`
+                        : "No categories added yet."}
+                    </p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-3 mt-4">
                       <div className="space-y-2 min-h-[200px] max-h-[300px] overflow-y-auto">
                         {currentCategories.map((category) => (
                           <div key={category.id} className="rounded-md border p-3">
@@ -545,6 +591,15 @@ export default function CategoriesFormPopUp({
                           </div>
                         ))}
                       </div>
+
+                      {/* Results info */}
+                      <div className="text-xs text-muted-foreground text-center">
+                        {searchTerm.trim() !== "" && (
+                          <>
+                            Showing {filteredCategories.length} of {categories.length} categories
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -614,92 +669,140 @@ export default function CategoriesFormPopUp({
 
       {/* Category Details Dialog */}
       <Dialog open={isCategoryDetailsOpen} onOpenChange={setIsCategoryDetailsOpen}>
-        <DialogContent className="sm:max-w-[700px] max-w-[95vw] max-h-[90vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle className="flex items-center gap-2">
-              {selectedCategory?.name} Details
-              <Badge variant="secondary">
+        <DialogContent className="sm:max-w-[800px] max-w-[95vw] max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4">
+            <DialogTitle className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="truncate">{selectedCategory?.name} Details</span>
+              <Badge variant="secondary" className="w-fit">
                 <Users className="h-3 w-3 mr-1" />
                 {selectedCategory?._count.rooms || 0} rooms
               </Badge>
             </DialogTitle>
-            <DialogDescription>View and manage all rooms in this category.</DialogDescription>
+            <DialogDescription className="text-sm sm:text-base">
+              View and manage all rooms in this category.
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden flex flex-col">
             {isLoadingDetails ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
             ) : selectedCategory ? (
-              <div className="space-y-4 overflow-y-auto h-full">
-                {selectedCategory.rooms.length > 0 && (
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-medium">Rooms in this category</h4>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteAllRooms(selectedCategory.id)}
-                      disabled={isDeletingAllRooms}
-                    >
-                      {isDeletingAllRooms ? (
-                        <>
-                          <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                          Deleting...
-                        </>
-                      ) : (
-                        <>
-                          <Trash className="mr-2 h-3 w-3" />
-                          Delete All Rooms
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-
-                {selectedCategory.rooms.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">No rooms in this category yet.</div>
-                ) : (
-                  <div className="space-y-2">
-                    {selectedCategory.rooms.map((room) => (
-                      <div key={room.id} className="border rounded-lg p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h5 className="font-medium">Room {room.roomNumber}</h5>
-                              <Badge variant="outline">{formatPrice(room.price)}</Badge>
-                            </div>
-                            {room.description && (
-                              <p className="text-sm text-muted-foreground truncate">{room.description}</p>
-                            )}
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Created: {new Date(room.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Room actions</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => setDeletingRoomId(room.id)}
-                                className="text-destructive"
-                                disabled={isDeletingRoom}
-                              >
-                                <Trash className="mr-2 h-4 w-4" />
-                                Delete Room
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+              <>
+                <div className="flex-1 overflow-y-auto">
+                  <div className="space-y-4">
+                    {selectedCategory.rooms.length > 0 && (
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <h4 className="font-medium text-sm sm:text-base">Rooms in this category</h4>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteAllRooms(selectedCategory.id)}
+                          disabled={isDeletingAllRooms}
+                          className="w-full sm:w-auto"
+                        >
+                          {isDeletingAllRooms ? (
+                            <>
+                              <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                              Deleting...
+                            </>
+                          ) : (
+                            <>
+                              <Trash className="mr-2 h-3 w-3" />
+                              Delete All Rooms
+                            </>
+                          )}
+                        </Button>
                       </div>
-                    ))}
+                    )}
+
+                    {selectedCategory.rooms.length === 0 ? (
+                      <div className="text-center py-12 text-muted-foreground">No rooms in this category yet.</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {currentRooms.map((room) => (
+                          <div key={room.id} className="border rounded-lg p-3 sm:p-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                                  <h5 className="font-medium text-sm sm:text-base">Room {room.roomNumber}</h5>
+                                  <Badge variant="outline" className="w-fit text-xs">
+                                    {formatPrice(room.price)}
+                                  </Badge>
+                                </div>
+                                {room.description && (
+                                  <p className="text-sm text-muted-foreground line-clamp-2 sm:line-clamp-1 mb-1">
+                                    {room.description}
+                                  </p>
+                                )}
+                                <p className="text-xs text-muted-foreground">
+                                  Created: {new Date(room.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="flex justify-end sm:justify-start">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                      <span className="sr-only">Room actions</span>
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={() => setDeletingRoomId(room.id)}
+                                      className="text-destructive"
+                                      disabled={isDeletingRoom}
+                                    >
+                                      <Trash className="mr-2 h-4 w-4" />
+                                      Delete Room
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Pagination for rooms */}
+                {totalRoomsPages > 1 && (
+                  <div className="flex-shrink-0 border-t pt-4 mt-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="text-sm text-muted-foreground order-2 sm:order-1">
+                        Showing {indexOfFirstRoom + 1}-{Math.min(indexOfLastRoom, selectedCategory.rooms.length)} of{" "}
+                        {selectedCategory.rooms.length} rooms
+                      </div>
+                      <div className="flex items-center gap-2 order-1 sm:order-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setRoomsCurrentPage((prev) => Math.max(prev - 1, 1))}
+                          disabled={roomsCurrentPage === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          <span className="hidden sm:inline ml-1">Previous</span>
+                        </Button>
+                        <span className="text-sm px-2">
+                          Page {roomsCurrentPage} of {totalRoomsPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setRoomsCurrentPage((prev) => Math.min(prev + 1, totalRoomsPages))}
+                          disabled={roomsCurrentPage === totalRoomsPages}
+                        >
+                          <span className="hidden sm:inline mr-1">Next</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
-              </div>
+              </>
             ) : null}
           </div>
         </DialogContent>
