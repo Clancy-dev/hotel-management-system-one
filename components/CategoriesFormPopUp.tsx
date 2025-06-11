@@ -99,6 +99,7 @@ export default function CategoriesFormPopUp({
   const [isDeletingAllRooms, setIsDeletingAllRooms] = useState(false)
   const [isDeletingRoom, setIsDeletingRoom] = useState(false)
   const [deletingRoomId, setDeletingRoomId] = useState<string | null>(null)
+  const [roomToDelete, setRoomToDelete] = useState<{ id: string; roomNumber: string } | null>(null)
 
   // New states for delete all rooms confirmation
   const [isDeleteAllRoomsDialogOpen, setIsDeleteAllRoomsDialogOpen] = useState(false)
@@ -275,8 +276,8 @@ export default function CategoriesFormPopUp({
 
     try {
       const result = await getCategoryWithRooms(category.id)
-      if (result.success) {
-        setSelectedCategory(result.data ?? null)
+      if (result.success && result.data) {
+        setSelectedCategory(result.data)
       } else {
         toast.error("Failed to load category details")
         setIsCategoryDetailsOpen(false)
@@ -335,7 +336,7 @@ export default function CategoriesFormPopUp({
       toast.error("An unexpected error occurred")
     } finally {
       setIsDeletingRoom(false)
-      setDeletingRoomId(null)
+      setRoomToDelete(null)
     }
   }
 
@@ -760,7 +761,7 @@ export default function CategoriesFormPopUp({
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
                                     <DropdownMenuItem
-                                      onClick={() => setDeletingRoomId(room.id)}
+                                      onClick={() => setRoomToDelete({ id: room.id, roomNumber: room.roomNumber })}
                                       className="text-destructive"
                                       disabled={isDeletingRoom}
                                     >
@@ -819,22 +820,35 @@ export default function CategoriesFormPopUp({
       </Dialog>
 
       {/* Delete room confirmation dialog */}
-      {deletingRoomId && (
-        <Dialog open={true} onOpenChange={() => setDeletingRoomId(null)}>
-          <DialogContent className="sm:max-w-[425px] max-w-[95vw]">
+      {roomToDelete && (
+        <Dialog open={true} onOpenChange={() => setRoomToDelete(null)}>
+          <DialogContent className="sm:max-w-[450px] max-w-[95vw]">
             <DialogHeader>
-              <DialogTitle>Delete Room</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete this room? This action cannot be undone.
+              <DialogTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+                Delete Room
+              </DialogTitle>
+              <DialogDescription className="pt-2 space-y-2">
+                <p>
+                  Are you sure you want to delete Room <strong>{roomToDelete.roomNumber}</strong> from the{" "}
+                  <strong>{selectedCategory?.name}</strong> category?
+                </p>
+                <Alert variant="destructive" className="py-2 mt-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    This action cannot be undone. All room data including images and pricing will be permanently
+                    deleted.
+                  </AlertDescription>
+                </Alert>
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setDeletingRoomId(null)} className="w-full sm:w-auto">
+              <Button variant="outline" onClick={() => setRoomToDelete(null)} className="w-full sm:w-auto">
                 Cancel
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => handleDeleteRoom(deletingRoomId)}
+                onClick={() => handleDeleteRoom(roomToDelete.id)}
                 className="w-full sm:w-auto"
                 disabled={isDeletingRoom}
               >
@@ -844,7 +858,10 @@ export default function CategoriesFormPopUp({
                     Deleting...
                   </>
                 ) : (
-                  "Delete Room"
+                  <>
+                    <Trash className="mr-2 h-4 w-4" />
+                    Delete Room
+                  </>
                 )}
               </Button>
             </div>
