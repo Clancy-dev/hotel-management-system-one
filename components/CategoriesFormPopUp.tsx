@@ -34,6 +34,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import type { RoomCategory } from "@prisma/client"
 import { toast } from "react-hot-toast"
 import { useCurrency } from "@/hooks/use-currency"
+import { useLanguage } from "@/hooks/use-language"
 
 export type RoomCategoryProps = {
   id: string
@@ -76,6 +77,7 @@ export default function CategoriesFormPopUp({
   onCategoriesChanged,
 }: CategoriesFormPopUpProps) {
   const { formatPrice } = useCurrency()
+  const { t } = useLanguage()
   const [categories, setCategories] = useState<CategoryWithCount[]>([])
   const [filteredCategories, setFilteredCategories] = useState<CategoryWithCount[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -111,7 +113,7 @@ export default function CategoriesFormPopUp({
 
   const categoriesPerPage = 5
 
-  // Predefined category options
+  // Predefined category options with translations
   const categoryOptions = [
     { value: "Single", label: "Single (One Person)" },
     { value: "Double", label: "Double (One Large Bed)" },
@@ -123,7 +125,7 @@ export default function CategoriesFormPopUp({
     { value: "Executive", label: "Executive (Business Travelers)" },
     { value: "Studio", label: "Studio (With Kitchenette)" },
     { value: "Cottage / Bungalow", label: "Cottage / Bungalow (Standalone Unit)" },
-    { value: "custom", label: "Custom Category..." },
+    { value: "custom", label: t("category.custom") },
   ]
 
   useEffect(() => {
@@ -146,7 +148,7 @@ export default function CategoriesFormPopUp({
       )
       setFilteredCategories(filtered)
     }
-    setCurrentPage(1) // Reset to first page when search changes
+    setCurrentPage(1)
   }, [categories, searchTerm])
 
   const fetchCategories = async () => {
@@ -174,7 +176,7 @@ export default function CategoriesFormPopUp({
     }
 
     if (!categoryName) {
-      setError("Please enter a category name")
+      setError(t("category.name.required"))
       return
     }
 
@@ -184,11 +186,11 @@ export default function CategoriesFormPopUp({
       const result = await createCategory({ name: categoryName })
 
       if (result.success) {
-        await fetchCategories() // Refresh the list to get updated counts
+        await fetchCategories()
         setNewCategoryName("")
         setCustomCategoryName("")
         setIsCustomCategory(false)
-        toast.success("Category created successfully")
+        toast.success(t("message.categoryCreated"))
         if (onCategoriesChanged) {
           onCategoriesChanged()
         }
@@ -197,7 +199,7 @@ export default function CategoriesFormPopUp({
         setError(result.error || "Failed to add category")
       }
     } catch (error) {
-      setError("An unexpected error occurred")
+      setError(t("message.error.unexpected"))
     } finally {
       setIsSubmitting(false)
     }
@@ -213,7 +215,7 @@ export default function CategoriesFormPopUp({
       const result = await deleteCategory(id)
       if (result.success) {
         setCategories(categories.filter((category) => category.id !== id))
-        toast.success("Category deleted successfully")
+        toast.success(t("message.categoryDeleted"))
         if (onCategoriesChanged) {
           onCategoriesChanged()
         }
@@ -221,7 +223,7 @@ export default function CategoriesFormPopUp({
         toast.error(result.error || "Failed to delete category")
       }
     } catch (error) {
-      toast.error("An unexpected error occurred")
+      toast.error(t("message.error.unexpected"))
     } finally {
       setIsDeleting(false)
     }
@@ -237,7 +239,7 @@ export default function CategoriesFormPopUp({
     setEditError(null)
 
     if (!editingCategory || !customCategoryName.trim()) {
-      setEditError("Please enter a category name")
+      setEditError(t("category.name.required"))
       return
     }
 
@@ -252,10 +254,10 @@ export default function CategoriesFormPopUp({
       })
 
       if (result.success && result.data) {
-        await fetchCategories() // Refresh to get updated data
+        await fetchCategories()
         setEditingCategory(null)
         setCustomCategoryName("")
-        toast.success("Category updated successfully")
+        toast.success(t("message.categoryUpdated"))
         if (onCategoriesChanged) {
           onCategoriesChanged()
         }
@@ -263,7 +265,7 @@ export default function CategoriesFormPopUp({
         setEditError(result.error || "Failed to update category")
       }
     } catch (error) {
-      setEditError("An unexpected error occurred")
+      setEditError(t("message.error.unexpected"))
     } finally {
       setIsEditing(false)
     }
@@ -272,18 +274,18 @@ export default function CategoriesFormPopUp({
   const handleViewCategoryDetails = async (category: CategoryWithCount) => {
     setIsLoadingDetails(true)
     setIsCategoryDetailsOpen(true)
-    setRoomsCurrentPage(1) // Reset rooms pagination
+    setRoomsCurrentPage(1)
 
     try {
       const result = await getCategoryWithRooms(category.id)
-      if (result.success && result.data) {
-        setSelectedCategory(result.data)
+      if (result.success) {
+        setSelectedCategory(result.data ?? null)
       } else {
         toast.error("Failed to load category details")
         setIsCategoryDetailsOpen(false)
       }
     } catch (error) {
-      toast.error("An unexpected error occurred")
+      toast.error(t("message.error.unexpected"))
       setIsCategoryDetailsOpen(false)
     } finally {
       setIsLoadingDetails(false)
@@ -296,12 +298,9 @@ export default function CategoriesFormPopUp({
       const result = await deleteAllRoomsInCategory(categoryId)
       if (result.success) {
         toast.success(`Successfully deleted ${result.data?.deletedCount || 0} rooms`)
-        // Close the confirmation dialog
         setIsDeleteAllRoomsDialogOpen(false)
         setCategoryToDeleteAllRooms(null)
-        // Refresh category details
         await handleViewCategoryDetails(selectedCategory as CategoryWithCount)
-        // Refresh main categories list
         await fetchCategories()
         if (onCategoriesChanged) {
           onCategoriesChanged()
@@ -310,7 +309,7 @@ export default function CategoriesFormPopUp({
         toast.error(result.error || "Failed to delete rooms")
       }
     } catch (error) {
-      toast.error("An unexpected error occurred")
+      toast.error(t("message.error.unexpected"))
     } finally {
       setIsDeletingAllRooms(false)
     }
@@ -321,10 +320,8 @@ export default function CategoriesFormPopUp({
     try {
       const result = await deleteRoom(roomId)
       if (result.success) {
-        toast.success("Room deleted successfully")
-        // Refresh category details
+        toast.success(t("message.roomDeleted"))
         await handleViewCategoryDetails(selectedCategory as CategoryWithCount)
-        // Refresh main categories list
         await fetchCategories()
         if (onCategoriesChanged) {
           onCategoriesChanged()
@@ -333,7 +330,7 @@ export default function CategoriesFormPopUp({
         toast.error("Failed to delete room")
       }
     } catch (error) {
-      toast.error("An unexpected error occurred")
+      toast.error(t("message.error.unexpected"))
     } finally {
       setIsDeletingRoom(false)
       setRoomToDelete(null)
@@ -369,10 +366,8 @@ export default function CategoriesFormPopUp({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[90vh] flex flex-col">
           <DialogHeader className="flex-shrink-0 pb-4">
-            <DialogTitle className="text-lg sm:text-xl">Manage Room Categories</DialogTitle>
-            <DialogDescription className="text-sm sm:text-base">
-              Add or remove room categories for your hotel.
-            </DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">{t("dialog.categories.title")}</DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">{t("dialog.categories.description")}</DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 overflow-hidden flex flex-col">
@@ -388,7 +383,7 @@ export default function CategoriesFormPopUp({
 
                   <div className="space-y-2">
                     <Label htmlFor="categoryName" className="text-sm font-medium">
-                      Category Name
+                      {t("category.name")}
                     </Label>
                     <div>
                       {!isCustomCategory ? (
@@ -402,7 +397,7 @@ export default function CategoriesFormPopUp({
                             <span className="truncate">
                               {newCategoryName
                                 ? categoryOptions.find((opt) => opt.value === newCategoryName)?.label
-                                : "Select a category type"}
+                                : t("category.select")}
                             </span>
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -445,7 +440,7 @@ export default function CategoriesFormPopUp({
                           <Input
                             value={customCategoryName}
                             onChange={(e) => setCustomCategoryName(e.target.value)}
-                            placeholder="Enter custom category name"
+                            placeholder={t("category.name.placeholder")}
                             className="flex-1"
                             disabled={isSubmitting}
                           />
@@ -457,7 +452,7 @@ export default function CategoriesFormPopUp({
                             disabled={isSubmitting}
                             className="w-full"
                           >
-                            Cancel
+                            {t("action.cancel")}
                           </Button>
                         </div>
                       )}
@@ -467,12 +462,12 @@ export default function CategoriesFormPopUp({
                     {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Adding...
+                        {t("action.saving")}
                       </>
                     ) : (
                       <>
                         <Plus className="mr-2 h-4 w-4" />
-                        Add Category
+                        {t("category.add")}
                       </>
                     )}
                   </Button>
@@ -480,13 +475,13 @@ export default function CategoriesFormPopUp({
 
                 <div className="border-t pt-4">
                   <div className="space-y-3">
-                    <h3 className="font-medium text-sm sm:text-base">Existing Categories</h3>
+                    <h3 className="font-medium text-sm sm:text-base">{t("category.existing")}</h3>
 
                     {/* Search Bar for Categories */}
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
-                        placeholder="Search categories..."
+                        placeholder={t("language.search")}
                         className="pl-10"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -497,8 +492,8 @@ export default function CategoriesFormPopUp({
                   {filteredCategories.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-8 text-center">
                       {searchTerm.trim() !== ""
-                        ? `No categories found matching "${searchTerm}"`
-                        : "No categories added yet."}
+                        ? `${t("category.noResults")} "${searchTerm}"`
+                        : t("category.noCategories")}
                     </p>
                   ) : (
                     <div className="space-y-3 mt-4">
@@ -517,7 +512,7 @@ export default function CategoriesFormPopUp({
                                   value={customCategoryName}
                                   onChange={(e) => setCustomCategoryName(e.target.value)}
                                   disabled={isEditing}
-                                  placeholder="Category name"
+                                  placeholder={t("category.name.placeholder")}
                                 />
                                 <div className="flex gap-2">
                                   <Button
@@ -529,10 +524,10 @@ export default function CategoriesFormPopUp({
                                     {isEditing ? (
                                       <>
                                         <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                        Saving...
+                                        {t("action.saving")}
                                       </>
                                     ) : (
-                                      "Save"
+                                      t("action.save")
                                     )}
                                   </Button>
                                   <Button
@@ -546,7 +541,7 @@ export default function CategoriesFormPopUp({
                                     className="flex-1"
                                     disabled={isEditing}
                                   >
-                                    Cancel
+                                    {t("action.cancel")}
                                   </Button>
                                 </div>
                               </div>
@@ -565,9 +560,10 @@ export default function CategoriesFormPopUp({
                                     size="icon"
                                     onClick={() => handleViewCategoryDetails(category)}
                                     className="h-8 w-8"
+                                    title={t("category.view")}
                                   >
                                     <Eye className="h-4 w-4" />
-                                    <span className="sr-only">View details</span>
+                                    <span className="sr-only">{t("category.view")}</span>
                                   </Button>
                                   <Button
                                     variant="ghost"
@@ -575,9 +571,10 @@ export default function CategoriesFormPopUp({
                                     onClick={() => handleEditCategory(category)}
                                     disabled={isDeleting}
                                     className="h-8 w-8"
+                                    title={t("category.edit")}
                                   >
                                     <Edit className="h-4 w-4" />
-                                    <span className="sr-only">Edit category</span>
+                                    <span className="sr-only">{t("category.edit")}</span>
                                   </Button>
                                   <Button
                                     variant="ghost"
@@ -585,13 +582,14 @@ export default function CategoriesFormPopUp({
                                     onClick={() => handleDeleteCategoryClick(category.id)}
                                     disabled={isDeleting}
                                     className="h-8 w-8"
+                                    title={t("category.delete")}
                                   >
                                     {isDeleting ? (
                                       <Loader2 className="h-4 w-4 text-destructive animate-spin" />
                                     ) : (
                                       <Trash className="h-4 w-4 text-destructive" />
                                     )}
-                                    <span className="sr-only">Delete category</span>
+                                    <span className="sr-only">{t("category.delete")}</span>
                                   </Button>
                                 </div>
                               </div>
@@ -604,7 +602,8 @@ export default function CategoriesFormPopUp({
                       <div className="text-xs text-muted-foreground text-center">
                         {searchTerm.trim() !== "" && (
                           <>
-                            Showing {filteredCategories.length} of {categories.length} categories
+                            {t("table.showing")} {filteredCategories.length} {t("table.of")} {categories.length}{" "}
+                            categories
                           </>
                         )}
                       </div>
@@ -625,10 +624,10 @@ export default function CategoriesFormPopUp({
                     disabled={currentPage === 1}
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    <span className="hidden sm:inline ml-1">Previous</span>
+                    <span className="hidden sm:inline ml-1">{t("action.previous")}</span>
                   </Button>
                   <span className="text-sm px-2">
-                    Page {currentPage} of {totalPages}
+                    {t("table.page")} {currentPage} {t("table.of")} {totalPages}
                   </span>
                   <Button
                     variant="outline"
@@ -636,7 +635,7 @@ export default function CategoriesFormPopUp({
                     onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
                   >
-                    <span className="hidden sm:inline mr-1">Next</span>
+                    <span className="hidden sm:inline mr-1">{t("action.next")}</span>
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -649,14 +648,14 @@ export default function CategoriesFormPopUp({
             <Dialog open={true} onOpenChange={() => setDeletingCategoryId(null)}>
               <DialogContent className="sm:max-w-[425px] max-w-[95vw]">
                 <DialogHeader>
-                  <DialogTitle>Confirm Deletion</DialogTitle>
-                  <DialogDescription>
-                    Are you sure you want to delete this category? This action cannot be undone.
-                  </DialogDescription>
+                  <DialogTitle>
+                    {t("action.confirm")} {t("category.delete")}
+                  </DialogTitle>
+                  <DialogDescription>{t("category.deleteConfirm")}</DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
                   <Button variant="outline" onClick={() => setDeletingCategoryId(null)} className="w-full sm:w-auto">
-                    Cancel
+                    {t("action.cancel")}
                   </Button>
                   <Button
                     variant="destructive"
@@ -666,7 +665,7 @@ export default function CategoriesFormPopUp({
                     }}
                     className="w-full sm:w-auto"
                   >
-                    Delete
+                    {t("action.delete")}
                   </Button>
                 </div>
               </DialogContent>
@@ -675,19 +674,21 @@ export default function CategoriesFormPopUp({
         </DialogContent>
       </Dialog>
 
-      {/* Category Details Dialog */}
+      {/* Category Details Dialog - Continue with translations for the rest of the component */}
       <Dialog open={isCategoryDetailsOpen} onOpenChange={setIsCategoryDetailsOpen}>
         <DialogContent className="sm:max-w-[800px] max-w-[95vw] max-h-[90vh] flex flex-col">
           <DialogHeader className="flex-shrink-0 pb-4">
             <DialogTitle className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <span className="truncate">{selectedCategory?.name} Details</span>
+              <span className="truncate">
+                {selectedCategory?.name} {t("category.view")}
+              </span>
               <Badge variant="secondary" className="w-fit">
                 <Users className="h-3 w-3 mr-1" />
-                {selectedCategory?._count.rooms || 0} rooms
+                {selectedCategory?._count.rooms || 0} {t("category.rooms")}
               </Badge>
             </DialogTitle>
             <DialogDescription className="text-sm sm:text-base">
-              View and manage all rooms in this category.
+              {t("category.view")} and manage all rooms in this category.
             </DialogDescription>
           </DialogHeader>
 
@@ -716,7 +717,7 @@ export default function CategoriesFormPopUp({
                           {isDeletingAllRooms ? (
                             <>
                               <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                              Deleting...
+                              {t("action.deleting")}
                             </>
                           ) : (
                             <>
@@ -737,7 +738,9 @@ export default function CategoriesFormPopUp({
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                               <div className="flex-1 min-w-0">
                                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                                  <h5 className="font-medium text-sm sm:text-base">Room {room.roomNumber}</h5>
+                                  <h5 className="font-medium text-sm sm:text-base">
+                                    {t("rooms.title")} {room.roomNumber}
+                                  </h5>
                                   <Badge variant="outline" className="w-fit text-xs">
                                     {formatPrice(room.price)}
                                   </Badge>
@@ -748,7 +751,7 @@ export default function CategoriesFormPopUp({
                                   </p>
                                 )}
                                 <p className="text-xs text-muted-foreground">
-                                  Created: {new Date(room.createdAt).toLocaleDateString()}
+                                  {t("time.created")}: {new Date(room.createdAt).toLocaleDateString()}
                                 </p>
                               </div>
                               <div className="flex justify-end sm:justify-start">
@@ -766,7 +769,7 @@ export default function CategoriesFormPopUp({
                                       disabled={isDeletingRoom}
                                     >
                                       <Trash className="mr-2 h-4 w-4" />
-                                      Delete Room
+                                      {t("rooms.delete")}
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
@@ -784,8 +787,9 @@ export default function CategoriesFormPopUp({
                   <div className="flex-shrink-0 border-t pt-4 mt-4">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div className="text-sm text-muted-foreground order-2 sm:order-1">
-                        Showing {indexOfFirstRoom + 1}-{Math.min(indexOfLastRoom, selectedCategory.rooms.length)} of{" "}
-                        {selectedCategory.rooms.length} rooms
+                        {t("table.showing")} {indexOfFirstRoom + 1}-
+                        {Math.min(indexOfLastRoom, selectedCategory.rooms.length)} {t("table.of")}{" "}
+                        {selectedCategory.rooms.length} {t("category.rooms")}
                       </div>
                       <div className="flex items-center gap-2 order-1 sm:order-2">
                         <Button
@@ -795,10 +799,10 @@ export default function CategoriesFormPopUp({
                           disabled={roomsCurrentPage === 1}
                         >
                           <ChevronLeft className="h-4 w-4" />
-                          <span className="hidden sm:inline ml-1">Previous</span>
+                          <span className="hidden sm:inline ml-1">{t("action.previous")}</span>
                         </Button>
                         <span className="text-sm px-2">
-                          Page {roomsCurrentPage} of {totalRoomsPages}
+                          {t("table.page")} {roomsCurrentPage} {t("table.of")} {totalRoomsPages}
                         </span>
                         <Button
                           variant="outline"
@@ -806,7 +810,7 @@ export default function CategoriesFormPopUp({
                           onClick={() => setRoomsCurrentPage((prev) => Math.min(prev + 1, totalRoomsPages))}
                           disabled={roomsCurrentPage === totalRoomsPages}
                         >
-                          <span className="hidden sm:inline mr-1">Next</span>
+                          <span className="hidden sm:inline mr-1">{t("action.next")}</span>
                           <ChevronRight className="h-4 w-4" />
                         </Button>
                       </div>
@@ -826,11 +830,11 @@ export default function CategoriesFormPopUp({
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-destructive" />
-                Delete Room
+                {t("rooms.delete")}
               </DialogTitle>
               <DialogDescription className="pt-2 space-y-2">
                 <p>
-                  Are you sure you want to delete Room <strong>{roomToDelete.roomNumber}</strong> from the{" "}
+                  Are you sure you want to delete {t("rooms.title")} <strong>{roomToDelete.roomNumber}</strong> from the{" "}
                   <strong>{selectedCategory?.name}</strong> category?
                 </p>
                 <Alert variant="destructive" className="py-2 mt-2">
@@ -844,7 +848,7 @@ export default function CategoriesFormPopUp({
             </DialogHeader>
             <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => setRoomToDelete(null)} className="w-full sm:w-auto">
-                Cancel
+                {t("action.cancel")}
               </Button>
               <Button
                 variant="destructive"
@@ -855,12 +859,12 @@ export default function CategoriesFormPopUp({
                 {isDeletingRoom ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Deleting...
+                    {t("action.deleting")}
                   </>
                 ) : (
                   <>
                     <Trash className="mr-2 h-4 w-4" />
-                    Delete Room
+                    {t("rooms.delete")}
                   </>
                 )}
               </Button>
@@ -891,8 +895,10 @@ export default function CategoriesFormPopUp({
                   <p className="font-medium text-destructive mb-2">⚠️ WARNING: This action cannot be undone!</p>
                   <p className="text-sm text-muted-foreground">
                     You are about to permanently delete{" "}
-                    <strong>ALL {categoryToDeleteAllRooms._count.rooms} rooms</strong> in the "
-                    <strong>{categoryToDeleteAllRooms.name}</strong>" category.
+                    <strong>
+                      ALL {categoryToDeleteAllRooms._count.rooms} {t("category.rooms")}
+                    </strong>{" "}
+                    in the "<strong>{categoryToDeleteAllRooms.name}</strong>" category.
                   </p>
                 </div>
 
@@ -901,7 +907,9 @@ export default function CategoriesFormPopUp({
                     <strong>What will happen:</strong>
                   </p>
                   <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
-                    <li>All {categoryToDeleteAllRooms._count.rooms} rooms will be permanently deleted</li>
+                    <li>
+                      All {categoryToDeleteAllRooms._count.rooms} {t("category.rooms")} will be permanently deleted
+                    </li>
                     <li>All room data including images, descriptions, and pricing will be lost</li>
                     <li>This action cannot be reversed or undone</li>
                     <li>The category "{categoryToDeleteAllRooms.name}" will remain but will be empty</li>
@@ -927,7 +935,7 @@ export default function CategoriesFormPopUp({
                 className="w-full sm:w-auto"
                 disabled={isDeletingAllRooms}
               >
-                Cancel - Keep Rooms Safe
+                {t("action.cancel")} - Keep Rooms Safe
               </Button>
               <Button
                 variant="destructive"
@@ -943,7 +951,7 @@ export default function CategoriesFormPopUp({
                 ) : (
                   <>
                     <Trash className="mr-2 h-4 w-4" />
-                    Yes, Delete All {categoryToDeleteAllRooms._count.rooms} Rooms
+                    Yes, Delete All {categoryToDeleteAllRooms._count.rooms} {t("category.rooms")}
                   </>
                 )}
               </Button>

@@ -21,6 +21,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { toast } from "react-hot-toast"
 import { useCurrency } from "@/hooks/use-currency"
 import { usePolicy } from "@/hooks/use-policy"
+import { useLanguage } from "@/hooks/use-language"
 import { Badge } from "@/components/ui/badge"
 
 interface RoomCategory {
@@ -45,6 +46,7 @@ interface FormValues {
 export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded }: AddRoomDialogProps) {
   const { currency, formatPrice } = useCurrency()
   const { policySettings } = usePolicy()
+  const { t } = useLanguage()
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const [images, setImages] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -72,7 +74,6 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
   useEffect(() => {
     if (open) {
       loadFormFromLocalStorage()
-      // Clear any previous server errors when dialog opens
       setServerError(null)
     }
   }, [open])
@@ -120,7 +121,7 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
     setImages([])
     setServerError(null)
     localStorage.removeItem("addRoomFormData")
-    toast.success("All form fields have been cleared")
+    toast.success(t("form.cleared"))
   }
 
   const onSubmit = async (data: FormValues) => {
@@ -128,7 +129,6 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
     setServerError(null)
 
     try {
-      // Convert price back to UGX (base currency) before saving
       const priceInUGX =
         currency.code === "UGX" ? Number.parseFloat(data.price) : Number.parseFloat(data.price) / currency.exchangeRate
 
@@ -141,7 +141,6 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
         policyType: policySettings.type,
       }
 
-      // Add policy-specific data
       if (policySettings.type === "standard") {
         roomData.standardPolicy = policySettings.standardPolicy
       } else if (policySettings.type === "custom") {
@@ -153,7 +152,6 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
       const result = await createRoom(roomData)
 
       if (result.success) {
-        // Reset form without showing the "All form fields have been cleared" toast
         reset({
           roomNumber: "",
           categoryId: "",
@@ -163,18 +161,17 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
         setImages([])
         localStorage.removeItem("addRoomFormData")
         onOpenChange(false)
-        toast.success("Room has been successfully added with policy configuration")
+        toast.success(t("message.roomAdded"))
         if (onRoomAdded && result.data) {
           onRoomAdded(result.data)
         }
       } else {
-        // Handle server error
-        setServerError(result.error || "Failed to add room")
-        toast.error(result.error || "Failed to add room")
+        setServerError(result.error || t("message.error.roomAdd"))
+        toast.error(result.error || t("message.error.roomAdd"))
       }
     } catch (error) {
-      setServerError("An unexpected error occurred")
-      toast.error("An unexpected error occurred")
+      setServerError(t("message.error.unexpected"))
+      toast.error(t("message.error.unexpected"))
     } finally {
       setIsSubmitting(false)
     }
@@ -192,13 +189,11 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
 
   const getCategoryName = (id: string) => {
     const category = roomCategories.find((cat) => cat.id === id)
-    return category ? category.name : "Select a category"
+    return category ? category.name : t("form.category.placeholder")
   }
 
-  // Calculate padding based on currency symbol length
   const getSymbolPadding = () => {
     const symbolLength = currency.symbol.length
-    // Base padding is 8 (2rem) plus extra for longer symbols
     return `${Math.max(10, symbolLength * 4 + 8)}px`
   }
 
@@ -207,18 +202,16 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
       open={open}
       onOpenChange={(newOpen) => {
         if (!newOpen) {
-          // Dialog is closing, form data is already saved via useEffect
           onOpenChange(newOpen)
         } else {
-          // Dialog is opening, try to load saved data
           onOpenChange(newOpen)
         }
       }}
     >
       <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[95vh] flex flex-col">
         <DialogHeader className="flex-shrink-0 pb-4">
-          <DialogTitle className="text-lg sm:text-xl">Add New Room</DialogTitle>
-          <DialogDescription className="text-sm sm:text-base">Enter the details for the new room.</DialogDescription>
+          <DialogTitle className="text-lg sm:text-xl">{t("dialog.addRoom.title")}</DialogTitle>
+          <DialogDescription className="text-sm sm:text-base">{t("dialog.addRoom.description")}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 overflow-y-auto px-1">
@@ -247,16 +240,16 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
               {/* Room Number */}
               <div className="space-y-2">
                 <Label htmlFor="roomNumber" className="text-sm font-medium">
-                  Room Number
+                  {t("form.roomNumber")}
                 </Label>
                 <Input
                   id="roomNumber"
                   {...register("roomNumber", {
-                    required: "Room number is required",
+                    required: t("form.roomNumber.required"),
                   })}
                   className={`${errors.roomNumber ? "border-red-500" : ""}`}
                   disabled={isSubmitting}
-                  placeholder="Enter room number"
+                  placeholder={t("form.roomNumber.placeholder")}
                 />
                 {errors.roomNumber && <p className="text-red-500 text-xs sm:text-sm">{errors.roomNumber.message}</p>}
               </div>
@@ -264,7 +257,7 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
               {/* Category */}
               <div className="space-y-2">
                 <Label htmlFor="category" className="text-sm font-medium">
-                  Category
+                  {t("form.category")}
                 </Label>
                 <div className="relative">
                   <button
@@ -299,7 +292,7 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                       <div className="p-1">
                         {roomCategories.length === 0 ? (
                           <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-muted-foreground">
-                            No categories available
+                            {t("category.noCategories")}
                           </div>
                         ) : (
                           roomCategories.map((category) => (
@@ -323,7 +316,7 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                   <input
                     type="hidden"
                     {...register("categoryId", {
-                      required: "Please select a room category",
+                      required: t("form.category.required"),
                     })}
                   />
                 </div>
@@ -333,7 +326,7 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
               {/* Price and Policy */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Pricing Configuration</Label>
+                  <Label className="text-sm font-medium">{t("form.pricing")}</Label>
                   <Badge variant="secondary" className="text-xs">
                     {policySettings.type} policy
                   </Badge>
@@ -342,7 +335,9 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                 {policySettings.type === "standard" && (
                   <div className="space-y-3">
                     <div className="space-y-2">
-                      <Label htmlFor="price">Base Price per Night ({currency.code})</Label>
+                      <Label htmlFor="price">
+                        {t("form.price.baseNight")} ({currency.code})
+                      </Label>
                       <div className="relative">
                         <div
                           className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground"
@@ -362,10 +357,9 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                           type="number"
                           step="0.01"
                           {...register("price", {
-                            required: "Price is required",
+                            required: t("form.price.required"),
                             validate: (value) =>
-                              (!isNaN(Number(value)) && Number(value) > 0) ||
-                              "Please enter a valid price greater than 0",
+                              (!isNaN(Number(value)) && Number(value) > 0) || t("form.price.invalid"),
                           })}
                           style={{
                             paddingLeft: getSymbolPadding(),
@@ -379,21 +373,28 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
 
                     <div className="p-3 bg-muted rounded-md text-sm space-y-1">
                       <p>
-                        <strong>Policy Details:</strong>
+                        <strong>{t("form.policy.details")}:</strong>
                       </p>
                       <p>
-                        • Night: {policySettings.standardPolicy.nightStart} - {policySettings.standardPolicy.nightEnd}
+                        • {t("form.policy.night")}: {policySettings.standardPolicy.nightStart} -{" "}
+                        {policySettings.standardPolicy.nightEnd}
                       </p>
                       <p>
-                        • Check-in: {policySettings.standardPolicy.checkInStart} -{" "}
+                        • {t("form.policy.checkin")}: {policySettings.standardPolicy.checkInStart} -{" "}
                         {policySettings.standardPolicy.checkInEnd}
                       </p>
                       <p>
-                        • Check-out: {policySettings.standardPolicy.checkOutStart} -{" "}
+                        • {t("form.policy.checkout")}: {policySettings.standardPolicy.checkOutStart} -{" "}
                         {policySettings.standardPolicy.checkOutEnd}
                       </p>
-                      <p>• Late checkout rates: {policySettings.standardPolicy.lateCheckOutRates.length} configured</p>
-                      <p>• Early check-in rates: {policySettings.standardPolicy.earlyCheckInRates.length} configured</p>
+                      <p>
+                        • {t("form.policy.lateCheckout")}: {policySettings.standardPolicy.lateCheckOutRates.length}{" "}
+                        {t("form.policy.configured")}
+                      </p>
+                      <p>
+                        • {t("form.policy.earlyCheckin")}: {policySettings.standardPolicy.earlyCheckInRates.length}{" "}
+                        {t("form.policy.configured")}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -401,7 +402,9 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                 {policySettings.type === "custom" && (
                   <div className="space-y-3">
                     <div className="space-y-2">
-                      <Label htmlFor="price">Price per Hour ({currency.code})</Label>
+                      <Label htmlFor="price">
+                        {t("form.price.perHour")} ({currency.code})
+                      </Label>
                       <div className="relative">
                         <div
                           className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground"
@@ -421,10 +424,9 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                           type="number"
                           step="0.01"
                           {...register("price", {
-                            required: "Price is required",
+                            required: t("form.price.required"),
                             validate: (value) =>
-                              (!isNaN(Number(value)) && Number(value) > 0) ||
-                              "Please enter a valid price greater than 0",
+                              (!isNaN(Number(value)) && Number(value) > 0) || t("form.price.invalid"),
                           })}
                           style={{
                             paddingLeft: getSymbolPadding(),
@@ -438,12 +440,20 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
 
                     <div className="p-3 bg-muted rounded-md text-sm space-y-1">
                       <p>
-                        <strong>Policy Details:</strong>
+                        <strong>{t("form.policy.details")}:</strong>
                       </p>
-                      <p>• Base duration: {policySettings.customPolicy.baseHours} hours</p>
-                      <p>• Overtime rates: {policySettings.customPolicy.overtimeRates.length} configured</p>
+                      <p>
+                        • {t("form.policy.baseHours")}: {policySettings.customPolicy.baseHours} {t("form.policy.hours")}
+                      </p>
+                      <p>
+                        • {t("form.policy.overtime")}: {policySettings.customPolicy.overtimeRates.length}{" "}
+                        {t("form.policy.configured")}
+                      </p>
                       {policySettings.customPolicy.earlyCheckOutRate && (
-                        <p>• Early checkout fee: {formatPrice(policySettings.customPolicy.earlyCheckOutRate)}</p>
+                        <p>
+                          • {t("form.policy.earlyCheckoutFee")}:{" "}
+                          {formatPrice(policySettings.customPolicy.earlyCheckOutRate)}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -452,7 +462,9 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                 {policySettings.type === "mixed" && (
                   <div className="space-y-3">
                     <div className="space-y-2">
-                      <Label htmlFor="price">Base Price ({currency.code})</Label>
+                      <Label htmlFor="price">
+                        {t("form.price.base")} ({currency.code})
+                      </Label>
                       <div className="relative">
                         <div
                           className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground"
@@ -472,10 +484,9 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                           type="number"
                           step="0.01"
                           {...register("price", {
-                            required: "Price is required",
+                            required: t("form.price.required"),
                             validate: (value) =>
-                              (!isNaN(Number(value)) && Number(value) > 0) ||
-                              "Please enter a valid price greater than 0",
+                              (!isNaN(Number(value)) && Number(value) > 0) || t("form.price.invalid"),
                           })}
                           style={{
                             paddingLeft: getSymbolPadding(),
@@ -489,18 +500,20 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
 
                     <div className="p-3 bg-muted rounded-md text-sm space-y-1">
                       <p>
-                        <strong>Mixed Policy Active:</strong>
+                        <strong>{t("form.policy.mixed")}:</strong>
                       </p>
-                      <p>• Default mode: {policySettings.mixedPolicy.defaultMode}</p>
-                      <p>• Both nightly and hourly rates available</p>
-                      <p>• Flexible booking options for guests</p>
+                      <p>
+                        • {t("form.policy.defaultMode")}: {policySettings.mixedPolicy.defaultMode}
+                      </p>
+                      <p>• {t("form.policy.nightly")}</p>
+                      <p>• {t("form.policy.flexible")}</p>
                     </div>
                   </div>
                 )}
 
                 {watchedValues.price && !isNaN(Number(watchedValues.price)) && Number(watchedValues.price) > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Preview:{" "}
+                    {t("form.preview")}:{" "}
                     {formatPrice(
                       currency.code === "UGX"
                         ? Number(watchedValues.price)
@@ -513,20 +526,20 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
               {/* Description */}
               <div className="space-y-2">
                 <Label htmlFor="description" className="text-sm font-medium">
-                  Description
+                  {t("form.description")}
                 </Label>
                 <Textarea
                   id="description"
                   {...register("description")}
                   className="min-h-[80px] sm:min-h-[100px] resize-none"
-                  placeholder="Detailed description of the room"
+                  placeholder={t("form.description.placeholder")}
                   disabled={isSubmitting}
                 />
               </div>
 
               {/* Room Images */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Room Images</Label>
+                <Label className="text-sm font-medium">{t("form.images")}</Label>
                 <div className="space-y-3">
                   <ImageUploader onImageAdded={handleAddImage} />
 
@@ -536,7 +549,7 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                         <div key={index} className="relative group">
                           <img
                             src={image || "/placeholder.svg"}
-                            alt={`Room image ${index + 1}`}
+                            alt={`${t("form.images")} ${index + 1}`}
                             className="h-20 sm:h-24 w-full object-cover rounded-md border"
                           />
                           <button
@@ -544,6 +557,7 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                             onClick={() => handleRemoveImage(index)}
                             className="absolute top-1 right-1 bg-black/70 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                             disabled={isSubmitting}
+                            title={t("form.images.remove")}
                           >
                             <X className="h-3 w-3 text-white" />
                           </button>
@@ -565,16 +579,16 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                 className="w-full sm:w-auto order-2 sm:order-1"
                 disabled={isSubmitting}
               >
-                Clear Form
+                {t("form.clearForm")}
               </Button>
               <Button type="submit" className="w-full sm:w-auto order-1 sm:order-2" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Adding...
+                    {t("form.adding")}
                   </>
                 ) : (
-                  "Add Room"
+                  t("rooms.add")
                 )}
               </Button>
             </div>

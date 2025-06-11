@@ -39,6 +39,7 @@ import { ImageGallery } from "@/components/rooms/image-gallery"
 import { deleteRoom } from "@/actions/room"
 import { toast } from "react-hot-toast"
 import { useCurrency } from "@/hooks/use-currency"
+import { useLanguage } from "@/hooks/use-language"
 
 // Define types based on Prisma models
 interface RoomCategory {
@@ -76,6 +77,7 @@ interface SortOption {
 
 export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
   const { currency, formatPrice } = useCurrency()
+  const { t } = useLanguage()
 
   // Initialize with no defaults - let users choose their preferences
   const [rooms, setRooms] = useState<Room[]>(initialRooms)
@@ -146,19 +148,54 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
 
   // Sort options
   const sortOptions: SortOption[] = [
-    { label: "Room Number (A-Z)", field: "roomNumber", direction: "asc", icon: <ArrowUp className="h-4 w-4 ml-2" /> },
     {
-      label: "Room Number (Z-A)",
+      label: t("roomTable.sortOptions.roomNumberAsc"),
+      field: "roomNumber",
+      direction: "asc",
+      icon: <ArrowUp className="h-4 w-4 ml-2" />,
+    },
+    {
+      label: t("roomTable.sortOptions.roomNumberDesc"),
       field: "roomNumber",
       direction: "desc",
       icon: <ArrowDown className="h-4 w-4 ml-2" />,
     },
-    { label: "Category (A-Z)", field: "category", direction: "asc", icon: <ArrowUp className="h-4 w-4 ml-2" /> },
-    { label: "Category (Z-A)", field: "category", direction: "desc", icon: <ArrowDown className="h-4 w-4 ml-2" /> },
-    { label: "Price (Low to High)", field: "price", direction: "asc", icon: <ArrowUp className="h-4 w-4 ml-2" /> },
-    { label: "Price (High to Low)", field: "price", direction: "desc", icon: <ArrowDown className="h-4 w-4 ml-2" /> },
-    { label: "Newest First", field: "createdAt", direction: "desc", icon: <Clock className="h-4 w-4 ml-2" /> },
-    { label: "Oldest First", field: "createdAt", direction: "asc", icon: <Clock className="h-4 w-4 ml-2" /> },
+    {
+      label: t("roomTable.sortOptions.categoryAsc"),
+      field: "category",
+      direction: "asc",
+      icon: <ArrowUp className="h-4 w-4 ml-2" />,
+    },
+    {
+      label: t("roomTable.sortOptions.categoryDesc"),
+      field: "category",
+      direction: "desc",
+      icon: <ArrowDown className="h-4 w-4 ml-2" />,
+    },
+    {
+      label: t("roomTable.sortOptions.priceLowHigh"),
+      field: "price",
+      direction: "asc",
+      icon: <ArrowUp className="h-4 w-4 ml-2" />,
+    },
+    {
+      label: t("roomTable.sortOptions.priceHighLow"),
+      field: "price",
+      direction: "desc",
+      icon: <ArrowDown className="h-4 w-4 ml-2" />,
+    },
+    {
+      label: t("roomTable.sortOptions.newestFirst"),
+      field: "createdAt",
+      direction: "desc",
+      icon: <Clock className="h-4 w-4 ml-2" />,
+    },
+    {
+      label: t("roomTable.sortOptions.oldestFirst"),
+      field: "createdAt",
+      direction: "asc",
+      icon: <Clock className="h-4 w-4 ml-2" />,
+    },
   ]
 
   useEffect(() => {
@@ -225,7 +262,7 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
   // Function to get category name by ID
   const getCategoryName = (categoryId: string) => {
     const category = roomCategories.find((cat) => cat.id === categoryId)
-    return category ? category.name : "Unknown Category"
+    return category ? category.name : t("roomTable.unknownCategory")
   }
 
   // Function to truncate description to about 3 words
@@ -290,25 +327,25 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
                 <MoreHorizontal className="h-4 w-4" />
-                <span className="sr-only">Open menu</span>
+                <span className="sr-only">{t("roomTable.openMenu")}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => handleViewDetails(room)}>
                 <Eye className="mr-2 h-4 w-4" />
-                View Details
+                {t("roomTable.viewDetails")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleEdit(room)}>
                 <Edit className="mr-2 h-4 w-4" />
-                Edit
+                {t("roomTable.edit")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleViewGallery(room)}>
                 <GalleryHorizontal className="mr-2 h-4 w-4" />
-                View Images
+                {t("roomTable.viewImages")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleDelete(room.id)} className="text-destructive">
                 <Trash className="mr-2 h-4 w-4" />
-                Delete
+                {t("roomTable.delete")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -347,7 +384,7 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search rooms by number, category, or description..."
+            placeholder={t("roomTable.searchPlaceholder")}
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -366,7 +403,7 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
                 className="rounded-r-none"
               >
                 <List className="h-4 w-4" />
-                <span className="hidden sm:inline ml-2">Table</span>
+                <span className="hidden sm:inline ml-2">{t("roomTable.table")}</span>
               </Button>
               <Button
                 variant={viewMode === "grid" ? "default" : "ghost"}
@@ -375,7 +412,7 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
                 className="rounded-l-none"
               >
                 <Grid3X3 className="h-4 w-4" />
-                <span className="hidden sm:inline ml-2">Grid</span>
+                <span className="hidden sm:inline ml-2">{t("roomTable.grid")}</span>
               </Button>
             </div>
 
@@ -388,7 +425,7 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
               >
                 <span className="flex items-center">
                   <LayoutGrid className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Rows: </span>
+                  <span className="hidden sm:inline">{t("roomTable.rows")}: </span>
                   <span>{rowsPerPage}</span>
                 </span>
               </button>
@@ -425,7 +462,7 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
               >
                 <span className="flex items-center">
                   <ArrowUpDown className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Sort</span>
+                  <span className="hidden sm:inline">{t("roomTable.sort")}</span>
                 </span>
               </button>
 
@@ -456,7 +493,7 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
 
           {/* Results Info */}
           <div className="text-sm text-muted-foreground">
-            {filteredRooms.length} room{filteredRooms.length !== 1 ? "s" : ""} found
+            {filteredRooms.length} {t("roomTable.resultsFound")}
           </div>
         </div>
       </div>
@@ -469,19 +506,21 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-20">Image</TableHead>
-                    <TableHead className="min-w-[100px]">Room</TableHead>
-                    <TableHead className="min-w-[120px]">Category</TableHead>
-                    <TableHead className="min-w-[100px]">Price</TableHead>
-                    <TableHead className="min-w-[150px]">Description</TableHead>
-                    <TableHead className="w-20">Actions</TableHead>
+                    <TableHead className="w-20">{t("roomTable.image")}</TableHead>
+                    <TableHead className="min-w-[100px]">{t("roomTable.room")}</TableHead>
+                    <TableHead className="min-w-[120px]">{t("roomTable.category")}</TableHead>
+                    <TableHead className="min-w-[100px]">{t("roomTable.price")}</TableHead>
+                    <TableHead className="min-w-[150px]">{t("roomTable.description")}</TableHead>
+                    <TableHead className="w-20">{t("roomTable.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {currentRooms.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="h-24 text-center">
-                        {searchTerm.trim() !== "" ? `No rooms found matching "${searchTerm}"` : "No rooms found."}
+                        {searchTerm.trim() !== ""
+                          ? `${t("roomTable.noRoomsMatching")} "${searchTerm}"`
+                          : t("roomTable.noRoomsFound")}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -513,25 +552,25 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8">
                                 <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Open menu</span>
+                                <span className="sr-only">{t("roomTable.openMenu")}</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => handleViewDetails(room)}>
                                 <Eye className="mr-2 h-4 w-4" />
-                                View Details
+                                {t("roomTable.viewDetails")}
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleEdit(room)}>
                                 <Edit className="mr-2 h-4 w-4" />
-                                Edit
+                                {t("roomTable.edit")}
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleViewGallery(room)}>
                                 <GalleryHorizontal className="mr-2 h-4 w-4" />
-                                View Images
+                                {t("roomTable.viewImages")}
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleDelete(room.id)} className="text-destructive">
                                 <Trash className="mr-2 h-4 w-4" />
-                                Delete
+                                {t("roomTable.delete")}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -548,7 +587,9 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {currentRooms.length === 0 ? (
             <div className="col-span-full text-center py-12 text-muted-foreground">
-              {searchTerm.trim() !== "" ? `No rooms found matching "${searchTerm}"` : "No rooms found."}
+              {searchTerm.trim() !== ""
+                ? `${t("roomTable.noRoomsMatching")} "${searchTerm}"`
+                : t("roomTable.noRoomsFound")}
             </div>
           ) : (
             currentRooms.map((room) => <RoomCard key={room.id} room={room} />)
@@ -560,8 +601,8 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
       {filteredRooms.length > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
           <div className="text-sm text-muted-foreground order-2 sm:order-1">
-            Showing {indexOfFirstRoom + 1}-{Math.min(indexOfLastRoom, filteredRooms.length)} of {filteredRooms.length}{" "}
-            rooms
+            {t("roomTable.showing")} {indexOfFirstRoom + 1}-{Math.min(indexOfLastRoom, filteredRooms.length)}{" "}
+            {t("roomTable.of")} {filteredRooms.length} {t("roomTable.rooms")}
           </div>
           <div className="flex items-center gap-2 order-1 sm:order-2">
             <Button
@@ -571,10 +612,10 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
               disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4" />
-              <span className="hidden sm:inline ml-1">Previous</span>
+              <span className="hidden sm:inline ml-1">{t("roomTable.previous")}</span>
             </Button>
             <span className="text-sm px-2">
-              Page {currentPage} of {totalPages || 1}
+              {t("roomTable.page")} {currentPage} {t("roomTable.of")} {totalPages || 1}
             </span>
             <Button
               variant="outline"
@@ -582,7 +623,7 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages || totalPages === 0}
             >
-              <span className="hidden sm:inline mr-1">Next</span>
+              <span className="hidden sm:inline mr-1">{t("roomTable.next")}</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -593,8 +634,8 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[90vh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
-            <DialogTitle>Room Details</DialogTitle>
-            <DialogDescription>Detailed information about the room.</DialogDescription>
+            <DialogTitle>{t("roomTable.roomDetails")}</DialogTitle>
+            <DialogDescription>{t("roomTable.roomDetailsDescription")}</DialogDescription>
           </DialogHeader>
           {selectedRoom && (
             <div className="flex flex-col flex-1 overflow-hidden">
@@ -616,24 +657,24 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
 
                   <div className="space-y-3">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-                      <div className="font-medium">Room Number:</div>
+                      <div className="font-medium">{t("roomTable.roomNumber")}:</div>
                       <div className="sm:col-span-2">{selectedRoom.roomNumber}</div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-                      <div className="font-medium">Category:</div>
+                      <div className="font-medium">{t("roomTable.category")}:</div>
                       <div className="sm:col-span-2">{getCategoryName(selectedRoom.categoryId)}</div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-                      <div className="font-medium">Price:</div>
+                      <div className="font-medium">{t("roomTable.price")}:</div>
                       <div className="sm:col-span-2">{formatPrice(selectedRoom.price)}</div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-                      <div className="font-medium">Description:</div>
+                      <div className="font-medium">{t("roomTable.description")}:</div>
                       <div className="sm:col-span-2">{selectedRoom.description}</div>
                     </div>
                     {selectedRoom.createdAt && (
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-                        <div className="font-medium">Created:</div>
+                        <div className="font-medium">{t("roomTable.createdAt")}:</div>
                         <div className="sm:col-span-2">{new Date(selectedRoom.createdAt).toLocaleString()}</div>
                       </div>
                     )}
@@ -648,11 +689,11 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
                     className="w-full sm:w-auto"
                   >
                     <GalleryHorizontal className="mr-2 h-4 w-4" />
-                    View Images
+                    {t("roomTable.viewImages")}
                   </Button>
                   <Button variant="outline" onClick={() => handleEdit(selectedRoom)} className="w-full sm:w-auto">
                     <Edit className="mr-2 h-4 w-4" />
-                    Edit
+                    {t("roomTable.edit")}
                   </Button>
                   <Button
                     variant="destructive"
@@ -663,12 +704,12 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
                     {isDeleting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Deleting...
+                        {t("roomTable.deleting")}
                       </>
                     ) : (
                       <>
                         <Trash className="mr-2 h-4 w-4" />
-                        Delete
+                        {t("roomTable.delete")}
                       </>
                     )}
                   </Button>
@@ -703,14 +744,12 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
         <Dialog open={true} onOpenChange={() => setRoomToDelete(null)}>
           <DialogContent className="sm:max-w-[425px] max-w-[95vw]">
             <DialogHeader>
-              <DialogTitle>Confirm Deletion</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete this room? This action cannot be undone.
-              </DialogDescription>
+              <DialogTitle>{t("roomTable.confirmDeletion")}</DialogTitle>
+              <DialogDescription>{t("roomTable.deleteConfirmMessage")}</DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button variant="outline" onClick={() => setRoomToDelete(null)} className="w-full sm:w-auto">
-                Cancel
+                {t("roomTable.cancel")}
               </Button>
               <Button
                 variant="destructive"
@@ -739,10 +778,10 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
                 {isDeleting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Deleting...
+                    {t("roomTable.deleting")}
                   </>
                 ) : (
-                  "Delete"
+                  t("roomTable.delete")
                 )}
               </Button>
             </DialogFooter>
