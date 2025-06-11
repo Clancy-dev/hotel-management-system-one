@@ -76,6 +76,40 @@ interface SortOption {
 
 export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
   const { currency, formatPrice } = useCurrency()
+
+  // Initialize state with saved preferences to prevent flash
+  const getInitialViewMode = (): ViewMode => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("roomTableViewMode") as ViewMode | null
+      return saved || "grid"
+    }
+    return "grid"
+  }
+
+  const getInitialRowsPerPage = (): number => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("roomTableRowsPerPage")
+      return saved ? Number.parseInt(saved) : 5
+    }
+    return 5
+  }
+
+  const getInitialSortField = (): SortField => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("roomTableSortField") as SortField | null
+      return saved || "createdAt"
+    }
+    return "createdAt"
+  }
+
+  const getInitialSortDirection = (): SortDirection => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("roomTableSortDirection") as SortDirection | null
+      return saved || "desc"
+    }
+    return "desc"
+  }
+
   const [rooms, setRooms] = useState<Room[]>(initialRooms)
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
@@ -85,43 +119,40 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState("")
   const [filteredRooms, setFilteredRooms] = useState<Room[]>(rooms)
-  const [sortField, setSortField] = useState<SortField>("createdAt")
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
+  const [sortField, setSortField] = useState<SortField>(getInitialSortField())
+  const [sortDirection, setSortDirection] = useState<SortDirection>(getInitialSortDirection())
   const [showSortMenu, setShowSortMenu] = useState(false)
-  const [rowsPerPage, setRowsPerPage] = useState(5)
+  const [rowsPerPage, setRowsPerPage] = useState(getInitialRowsPerPage())
   const [showRowsMenu, setShowRowsMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [roomToDelete, setRoomToDelete] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<ViewMode>("grid") // Changed default to grid
+  const [viewMode, setViewMode] = useState<ViewMode>(getInitialViewMode())
 
-  // Load user preferences from localStorage on component mount
-  useEffect(() => {
-    const savedViewMode = localStorage.getItem("roomTableViewMode") as ViewMode | null
-    const savedRowsPerPage = localStorage.getItem("roomTableRowsPerPage")
-    const savedSortField = localStorage.getItem("roomTableSortField") as SortField | null
-    const savedSortDirection = localStorage.getItem("roomTableSortDirection") as SortDirection | null
-
-    if (savedViewMode) setViewMode(savedViewMode)
-    if (savedRowsPerPage) setRowsPerPage(Number.parseInt(savedRowsPerPage))
-    if (savedSortField) setSortField(savedSortField)
-    if (savedSortDirection) setSortDirection(savedSortDirection)
-  }, [])
+  // Remove the old useEffect blocks for loading preferences since we now initialize with them
 
   // Save user preferences to localStorage when they change
   useEffect(() => {
-    localStorage.setItem("roomTableViewMode", viewMode)
+    if (typeof window !== "undefined") {
+      localStorage.setItem("roomTableViewMode", viewMode)
+    }
   }, [viewMode])
 
   useEffect(() => {
-    localStorage.setItem("roomTableRowsPerPage", rowsPerPage.toString())
+    if (typeof window !== "undefined") {
+      localStorage.setItem("roomTableRowsPerPage", rowsPerPage.toString())
+    }
   }, [rowsPerPage])
 
   useEffect(() => {
-    localStorage.setItem("roomTableSortField", sortField)
+    if (typeof window !== "undefined") {
+      localStorage.setItem("roomTableSortField", sortField)
+    }
   }, [sortField])
 
   useEffect(() => {
-    localStorage.setItem("roomTableSortDirection", sortDirection)
+    if (typeof window !== "undefined") {
+      localStorage.setItem("roomTableSortDirection", sortDirection)
+    }
   }, [sortDirection])
 
   // Update rooms when initialRooms changes
@@ -439,80 +470,86 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
 
       {/* Content Area */}
       {viewMode === "table" ? (
-        <div className="rounded-md border overflow-hidden">
-          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-            <div style={{ minWidth: "800px" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[80px]">Image</TableHead>
-                    <TableHead>Room Number</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="w-[60px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentRooms.length === 0 ? (
+        <div className="w-full">
+          <div className="rounded-md border bg-white overflow-hidden">
+            <div className="overflow-x-auto">
+              <div className="min-w-[800px]">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
-                        {searchTerm.trim() !== "" ? `No rooms found matching "${searchTerm}"` : "No rooms found."}
-                      </TableCell>
+                      <TableHead className="w-[80px] sticky left-0 bg-white z-10 border-r">Image</TableHead>
+                      <TableHead className="min-w-[120px]">Room Number</TableHead>
+                      <TableHead className="min-w-[140px]">Category</TableHead>
+                      <TableHead className="min-w-[120px]">Price</TableHead>
+                      <TableHead className="min-w-[200px]">Description</TableHead>
+                      <TableHead className="w-[80px] sticky right-0 bg-white z-10 border-l">Actions</TableHead>
                     </TableRow>
-                  ) : (
-                    currentRooms.map((room) => (
-                      <TableRow key={room.id}>
-                        <TableCell>
-                          {room.images && room.images.length > 0 ? (
-                            <img
-                              src={room.images[0] || "/placeholder.svg"}
-                              alt={`Room ${room.roomNumber}`}
-                              className="h-12 w-12 object-cover rounded-md"
-                            />
-                          ) : (
-                            <div className="h-12 w-12 bg-muted flex items-center justify-center rounded-md">
-                              <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-medium">{room.roomNumber}</TableCell>
-                        <TableCell>{getCategoryName(room.categoryId)}</TableCell>
-                        <TableCell>{formatPrice(room.price)}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{room.description}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Open menu</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewDetails(room)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEdit(room)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleViewGallery(room)}>
-                                <GalleryHorizontal className="mr-2 h-4 w-4" />
-                                View Images
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDelete(room.id)} className="text-destructive">
-                                <Trash className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                  </TableHeader>
+                  <TableBody>
+                    {currentRooms.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="h-24 text-center">
+                          {searchTerm.trim() !== "" ? `No rooms found matching "${searchTerm}"` : "No rooms found."}
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      currentRooms.map((room) => (
+                        <TableRow key={room.id}>
+                          <TableCell className="sticky left-0 bg-white z-10 border-r">
+                            {room.images && room.images.length > 0 ? (
+                              <img
+                                src={room.images[0] || "/placeholder.svg"}
+                                alt={`Room ${room.roomNumber}`}
+                                className="h-12 w-12 object-cover rounded-md"
+                              />
+                            ) : (
+                              <div className="h-12 w-12 bg-muted flex items-center justify-center rounded-md">
+                                <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-medium">{room.roomNumber}</TableCell>
+                          <TableCell>{getCategoryName(room.categoryId)}</TableCell>
+                          <TableCell className="font-medium">{formatPrice(room.price)}</TableCell>
+                          <TableCell>
+                            <div className="max-w-[200px] truncate" title={room.description}>
+                              {room.description}
+                            </div>
+                          </TableCell>
+                          <TableCell className="sticky right-0 bg-white z-10 border-l">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Open menu</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewDetails(room)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEdit(room)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleViewGallery(room)}>
+                                  <GalleryHorizontal className="mr-2 h-4 w-4" />
+                                  View Images
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDelete(room.id)} className="text-destructive">
+                                  <Trash className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </div>
         </div>
