@@ -100,6 +100,10 @@ export default function CategoriesFormPopUp({
   const [isDeletingRoom, setIsDeletingRoom] = useState(false)
   const [deletingRoomId, setDeletingRoomId] = useState<string | null>(null)
 
+  // New states for delete all rooms confirmation
+  const [isDeleteAllRoomsDialogOpen, setIsDeleteAllRoomsDialogOpen] = useState(false)
+  const [categoryToDeleteAllRooms, setCategoryToDeleteAllRooms] = useState<CategoryWithRooms | null>(null)
+
   // Pagination for rooms in category details
   const [roomsCurrentPage, setRoomsCurrentPage] = useState(1)
   const roomsPerPage = 5
@@ -291,6 +295,9 @@ export default function CategoriesFormPopUp({
       const result = await deleteAllRoomsInCategory(categoryId)
       if (result.success) {
         toast.success(`Successfully deleted ${result.data?.deletedCount || 0} rooms`)
+        // Close the confirmation dialog
+        setIsDeleteAllRoomsDialogOpen(false)
+        setCategoryToDeleteAllRooms(null)
         // Refresh category details
         await handleViewCategoryDetails(selectedCategory as CategoryWithCount)
         // Refresh main categories list
@@ -698,7 +705,10 @@ export default function CategoriesFormPopUp({
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => handleDeleteAllRooms(selectedCategory.id)}
+                          onClick={() => {
+                            setCategoryToDeleteAllRooms(selectedCategory)
+                            setIsDeleteAllRoomsDialogOpen(true)
+                          }}
                           disabled={isDeletingAllRooms}
                           className="w-full sm:w-auto"
                         >
@@ -835,6 +845,89 @@ export default function CategoriesFormPopUp({
                   </>
                 ) : (
                   "Delete Room"
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Delete All Rooms Confirmation Dialog */}
+      {isDeleteAllRoomsDialogOpen && categoryToDeleteAllRooms && (
+        <Dialog
+          open={true}
+          onOpenChange={() => {
+            if (!isDeletingAllRooms) {
+              setIsDeleteAllRoomsDialogOpen(false)
+              setCategoryToDeleteAllRooms(null)
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-[500px] max-w-[95vw]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-5 w-5" />
+                Delete All Rooms - Permanent Action
+              </DialogTitle>
+              <DialogDescription className="space-y-3 pt-2">
+                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md">
+                  <p className="font-medium text-destructive mb-2">⚠️ WARNING: This action cannot be undone!</p>
+                  <p className="text-sm text-muted-foreground">
+                    You are about to permanently delete{" "}
+                    <strong>ALL {categoryToDeleteAllRooms._count.rooms} rooms</strong> in the "
+                    <strong>{categoryToDeleteAllRooms.name}</strong>" category.
+                  </p>
+                </div>
+
+                <div className="space-y-2 text-sm">
+                  <p>
+                    <strong>What will happen:</strong>
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
+                    <li>All {categoryToDeleteAllRooms._count.rooms} rooms will be permanently deleted</li>
+                    <li>All room data including images, descriptions, and pricing will be lost</li>
+                    <li>This action cannot be reversed or undone</li>
+                    <li>The category "{categoryToDeleteAllRooms.name}" will remain but will be empty</li>
+                  </ul>
+                </div>
+
+                <div className="p-3 bg-muted rounded-md">
+                  <p className="text-sm font-medium">Are you absolutely sure you want to continue?</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Consider deleting rooms individually if you only want to remove specific ones.
+                  </p>
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsDeleteAllRoomsDialogOpen(false)
+                  setCategoryToDeleteAllRooms(null)
+                }}
+                className="w-full sm:w-auto"
+                disabled={isDeletingAllRooms}
+              >
+                Cancel - Keep Rooms Safe
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleDeleteAllRooms(categoryToDeleteAllRooms.id)}
+                className="w-full sm:w-auto"
+                disabled={isDeletingAllRooms}
+              >
+                {isDeletingAllRooms ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting All Rooms...
+                  </>
+                ) : (
+                  <>
+                    <Trash className="mr-2 h-4 w-4" />
+                    Yes, Delete All {categoryToDeleteAllRooms._count.rooms} Rooms
+                  </>
                 )}
               </Button>
             </div>
