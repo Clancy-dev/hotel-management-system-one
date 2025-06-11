@@ -372,7 +372,6 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                           }}
                           className={`${errors.price ? "border-red-500" : ""}`}
                           disabled={isSubmitting}
-                          placeholder="Enter the price"
                         />
                       </div>
                       {errors.price && <p className="text-red-500 text-xs sm:text-sm">{errors.price.message}</p>}
@@ -432,7 +431,6 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                           }}
                           className={`${errors.price ? "border-red-500" : ""}`}
                           disabled={isSubmitting}
-                          placeholder="Enter the price"
                         />
                       </div>
                       {errors.price && <p className="text-red-500 text-xs sm:text-sm">{errors.price.message}</p>}
@@ -484,7 +482,6 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                           }}
                           className={`${errors.price ? "border-red-500" : ""}`}
                           disabled={isSubmitting}
-                          placeholder="Enter the price"
                         />
                       </div>
                       {errors.price && <p className="text-red-500 text-xs sm:text-sm">{errors.price.message}</p>}
