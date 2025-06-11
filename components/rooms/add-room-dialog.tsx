@@ -20,6 +20,8 @@ import { X, AlertCircle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { toast } from "react-hot-toast"
 import { useCurrency } from "@/hooks/use-currency"
+import { usePolicy } from "@/hooks/use-policy"
+import { Badge } from "@/components/ui/badge"
 
 interface RoomCategory {
   id: string
@@ -42,6 +44,7 @@ interface FormValues {
 
 export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded }: AddRoomDialogProps) {
   const { currency, formatPrice } = useCurrency()
+  const { policySettings } = usePolicy()
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const [images, setImages] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -129,13 +132,25 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
       const priceInUGX =
         currency.code === "UGX" ? Number.parseFloat(data.price) : Number.parseFloat(data.price) / currency.exchangeRate
 
-      const result = await createRoom({
+      const roomData: any = {
         roomNumber: data.roomNumber.trim(),
         categoryId: data.categoryId,
         price: priceInUGX,
         description: data.description,
         images,
-      })
+        policyType: policySettings.type,
+      }
+
+      // Add policy-specific data
+      if (policySettings.type === "standard") {
+        roomData.standardPolicy = policySettings.standardPolicy
+      } else if (policySettings.type === "custom") {
+        roomData.customPolicy = policySettings.customPolicy
+      } else if (policySettings.type === "mixed") {
+        roomData.mixedPolicy = policySettings.mixedPolicy
+      }
+
+      const result = await createRoom(roomData)
 
       if (result.success) {
         // Reset form without showing the "All form fields have been cleared" toast
@@ -148,7 +163,7 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
         setImages([])
         localStorage.removeItem("addRoomFormData")
         onOpenChange(false)
-        toast.success("Room has been successfully added")
+        toast.success("Room has been successfully added with policy configuration")
         if (onRoomAdded && result.data) {
           onRoomAdded(result.data)
         }
@@ -315,43 +330,177 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                 {errors.categoryId && <p className="text-red-500 text-xs sm:text-sm">{errors.categoryId.message}</p>}
               </div>
 
-              {/* Price */}
-              <div className="space-y-2">
-                <Label htmlFor="price" className="text-sm font-medium">
-                  Price ({currency.code})
-                </Label>
-                <div className="relative">
-                  <div
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      height: "100%",
-                      paddingRight: "4px",
-                      borderRight: "1px solid #e2e8f0",
-                      paddingLeft: "2px",
-                    }}
-                  >
-                    {currency.symbol}
-                  </div>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    {...register("price", {
-                      required: "Price is required",
-                      validate: (value) =>
-                        (!isNaN(Number(value)) && Number(value) > 0) || "Please enter a valid price greater than 0",
-                    })}
-                    style={{
-                      paddingLeft: getSymbolPadding(),
-                    }}
-                    className={`${errors.price ? "border-red-500" : ""}`}
-                    disabled={isSubmitting}
-                    placeholder="Enter the price"
-                  />
+              {/* Price and Policy */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Pricing Configuration</Label>
+                  <Badge variant="secondary" className="text-xs">
+                    {policySettings.type} policy
+                  </Badge>
                 </div>
-                {errors.price && <p className="text-red-500 text-xs sm:text-sm">{errors.price.message}</p>}
+
+                {policySettings.type === "standard" && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Base Price per Night ({currency.code})</Label>
+                      <div className="relative">
+                        <div
+                          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground"
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                            paddingRight: "4px",
+                            borderRight: "1px solid #e2e8f0",
+                            paddingLeft: "2px",
+                          }}
+                        >
+                          {currency.symbol}
+                        </div>
+                        <Input
+                          id="price"
+                          type="number"
+                          step="0.01"
+                          {...register("price", {
+                            required: "Price is required",
+                            validate: (value) =>
+                              (!isNaN(Number(value)) && Number(value) > 0) ||
+                              "Please enter a valid price greater than 0",
+                          })}
+                          style={{
+                            paddingLeft: getSymbolPadding(),
+                          }}
+                          className={`${errors.price ? "border-red-500" : ""}`}
+                          disabled={isSubmitting}
+                          placeholder="Enter the price"
+                        />
+                      </div>
+                      {errors.price && <p className="text-red-500 text-xs sm:text-sm">{errors.price.message}</p>}
+                    </div>
+
+                    <div className="p-3 bg-muted rounded-md text-sm space-y-1">
+                      <p>
+                        <strong>Policy Details:</strong>
+                      </p>
+                      <p>
+                        • Night: {policySettings.standardPolicy.nightStart} - {policySettings.standardPolicy.nightEnd}
+                      </p>
+                      <p>
+                        • Check-in: {policySettings.standardPolicy.checkInStart} -{" "}
+                        {policySettings.standardPolicy.checkInEnd}
+                      </p>
+                      <p>
+                        • Check-out: {policySettings.standardPolicy.checkOutStart} -{" "}
+                        {policySettings.standardPolicy.checkOutEnd}
+                      </p>
+                      <p>• Late checkout rates: {policySettings.standardPolicy.lateCheckOutRates.length} configured</p>
+                      <p>• Early check-in rates: {policySettings.standardPolicy.earlyCheckInRates.length} configured</p>
+                    </div>
+                  </div>
+                )}
+
+                {policySettings.type === "custom" && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Price per Hour ({currency.code})</Label>
+                      <div className="relative">
+                        <div
+                          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground"
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                            paddingRight: "4px",
+                            borderRight: "1px solid #e2e8f0",
+                            paddingLeft: "2px",
+                          }}
+                        >
+                          {currency.symbol}
+                        </div>
+                        <Input
+                          id="price"
+                          type="number"
+                          step="0.01"
+                          {...register("price", {
+                            required: "Price is required",
+                            validate: (value) =>
+                              (!isNaN(Number(value)) && Number(value) > 0) ||
+                              "Please enter a valid price greater than 0",
+                          })}
+                          style={{
+                            paddingLeft: getSymbolPadding(),
+                          }}
+                          className={`${errors.price ? "border-red-500" : ""}`}
+                          disabled={isSubmitting}
+                          placeholder="Enter the price"
+                        />
+                      </div>
+                      {errors.price && <p className="text-red-500 text-xs sm:text-sm">{errors.price.message}</p>}
+                    </div>
+
+                    <div className="p-3 bg-muted rounded-md text-sm space-y-1">
+                      <p>
+                        <strong>Policy Details:</strong>
+                      </p>
+                      <p>• Base duration: {policySettings.customPolicy.baseHours} hours</p>
+                      <p>• Overtime rates: {policySettings.customPolicy.overtimeRates.length} configured</p>
+                      {policySettings.customPolicy.earlyCheckOutRate && (
+                        <p>• Early checkout fee: {formatPrice(policySettings.customPolicy.earlyCheckOutRate)}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {policySettings.type === "mixed" && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Base Price ({currency.code})</Label>
+                      <div className="relative">
+                        <div
+                          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground"
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            height: "100%",
+                            paddingRight: "4px",
+                            borderRight: "1px solid #e2e8f0",
+                            paddingLeft: "2px",
+                          }}
+                        >
+                          {currency.symbol}
+                        </div>
+                        <Input
+                          id="price"
+                          type="number"
+                          step="0.01"
+                          {...register("price", {
+                            required: "Price is required",
+                            validate: (value) =>
+                              (!isNaN(Number(value)) && Number(value) > 0) ||
+                              "Please enter a valid price greater than 0",
+                          })}
+                          style={{
+                            paddingLeft: getSymbolPadding(),
+                          }}
+                          className={`${errors.price ? "border-red-500" : ""}`}
+                          disabled={isSubmitting}
+                          placeholder="Enter the price"
+                        />
+                      </div>
+                      {errors.price && <p className="text-red-500 text-xs sm:text-sm">{errors.price.message}</p>}
+                    </div>
+
+                    <div className="p-3 bg-muted rounded-md text-sm space-y-1">
+                      <p>
+                        <strong>Mixed Policy Active:</strong>
+                      </p>
+                      <p>• Default mode: {policySettings.mixedPolicy.defaultMode}</p>
+                      <p>• Both nightly and hourly rates available</p>
+                      <p>• Flexible booking options for guests</p>
+                    </div>
+                  </div>
+                )}
+
                 {watchedValues.price && !isNaN(Number(watchedValues.price)) && Number(watchedValues.price) > 0 && (
                   <p className="text-xs text-muted-foreground">
                     Preview:{" "}

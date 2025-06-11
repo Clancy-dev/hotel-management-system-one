@@ -9,6 +9,10 @@ interface RoomData {
   price: number
   description: string
   images?: string[]
+  policyType?: "standard" | "custom" | "mixed"
+  standardPolicy?: any
+  customPolicy?: any
+  mixedPolicy?: any
 }
 
 export async function getRooms() {
@@ -64,15 +68,26 @@ export async function createRoom(data: RoomData) {
       return { success: false, error: `Room number ${data.roomNumber} already exists` }
     }
 
-    // Create the room
+    // Create the room with policy data
+    const roomData: any = {
+      roomNumber: data.roomNumber,
+      categoryId: data.categoryId,
+      price: data.price,
+      description: data.description,
+      images: data.images || [],
+    }
+
+    // Add policy-specific data based on policy type
+    if (data.policyType === "standard" && data.standardPolicy) {
+      roomData.standardPolicy = data.standardPolicy
+    } else if (data.policyType === "custom" && data.customPolicy) {
+      roomData.customPolicy = data.customPolicy
+    } else if (data.policyType === "mixed" && data.mixedPolicy) {
+      roomData.mixedPolicy = data.mixedPolicy
+    }
+
     const newRoom = await db.room.create({
-      data: {
-        roomNumber: data.roomNumber,
-        categoryId: data.categoryId,
-        price: data.price,
-        description: data.description,
-        images: data.images || [],
-      },
+      data: roomData,
     })
 
     revalidatePath("/rooms")
@@ -104,16 +119,33 @@ export async function updateRoom(id: string, data: RoomData) {
       }
     }
 
-    // Update the room
+    // Update the room with policy data
+    const roomData: any = {
+      roomNumber: data.roomNumber,
+      categoryId: data.categoryId,
+      price: data.price,
+      description: data.description,
+      images: data.images || [],
+    }
+
+    // Add policy-specific data based on policy type
+    if (data.policyType === "standard" && data.standardPolicy) {
+      roomData.standardPolicy = data.standardPolicy
+      roomData.customPolicy = null
+      roomData.mixedPolicy = null
+    } else if (data.policyType === "custom" && data.customPolicy) {
+      roomData.customPolicy = data.customPolicy
+      roomData.standardPolicy = null
+      roomData.mixedPolicy = null
+    } else if (data.policyType === "mixed" && data.mixedPolicy) {
+      roomData.mixedPolicy = data.mixedPolicy
+      roomData.standardPolicy = null
+      roomData.customPolicy = null
+    }
+
     const updatedRoom = await db.room.update({
       where: { id },
-      data: {
-        roomNumber: data.roomNumber,
-        categoryId: data.categoryId,
-        price: data.price,
-        description: data.description,
-        images: data.images || [],
-      },
+      data: roomData,
     })
 
     revalidatePath("/rooms")

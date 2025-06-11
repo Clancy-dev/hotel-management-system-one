@@ -17,6 +17,12 @@ model Room {
   price       Float
   description String
   images      String[]
+  
+  // Policy-specific pricing
+  standardPolicy StandardPolicyData?
+  customPolicy   CustomPolicyData?
+  mixedPolicy    MixedPolicyData?
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -30,4 +36,56 @@ model RoomCategory {
   updatedAt DateTime @updatedAt
 
   rooms Room[]
+}
+
+// Standard Policy Data Structure
+type StandardPolicyData {
+  basePrice         Float
+  checkInStart      String  // "12:00"
+  checkInEnd        String  // "14:00"
+  checkOutStart     String  // "10:00"
+  checkOutEnd       String  // "11:00"
+  nightStart        String  // "12:00"
+  nightEnd          String  // "10:00"
+  lateCheckOutRates LateCheckOutRate[]
+  earlyCheckInRates EarlyCheckInRate[]
+}
+
+type LateCheckOutRate {
+  id          String
+  startTime   String  // "11:00"
+  endTime     String  // "16:00"
+  charge      Float
+  description String?
+}
+
+type EarlyCheckInRate {
+  id          String
+  startTime   String  // "08:00"
+  endTime     String  // "12:00"
+  charge      Float
+  description String?
+}
+
+// Custom Policy Data Structure
+type CustomPolicyData {
+  baseHours         Int
+  pricePerHour      Float
+  overtimeRates     OvertimeRate[]
+  earlyCheckOutRate Float?
+}
+
+type OvertimeRate {
+  id          String
+  afterHours  Int     // After how many hours
+  upToHours   Int?    // Up to how many hours (optional)
+  charge      Float
+  description String?
+}
+
+// Mixed Policy Data Structure
+type MixedPolicyData {
+  standardPolicy StandardPolicyData
+  customPolicy   CustomPolicyData
+  defaultMode    String // "standard" | "custom"
 }
