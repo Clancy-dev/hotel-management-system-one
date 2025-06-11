@@ -45,6 +45,7 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const [images, setImages] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const {
     register,
@@ -68,6 +69,8 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
   useEffect(() => {
     if (open) {
       loadFormFromLocalStorage()
+      // Clear any previous server errors when dialog opens
+      setServerError(null)
     }
   }, [open])
 
@@ -112,12 +115,15 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
       description: "",
     })
     setImages([])
+    setServerError(null)
     localStorage.removeItem("addRoomFormData")
     toast.success("All form fields have been cleared")
   }
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true)
+    setServerError(null)
+
     try {
       // Convert price back to UGX (base currency) before saving
       const priceInUGX =
@@ -130,6 +136,7 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
         description: data.description,
         images,
       })
+
       if (result.success) {
         // Reset form without showing the "All form fields have been cleared" toast
         reset({
@@ -146,9 +153,12 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
           onRoomAdded(result.data)
         }
       } else {
-        toast.error("Failed to add room")
+        // Handle server error
+        setServerError(result.error || "Failed to add room")
+        toast.error(result.error || "Failed to add room")
       }
     } catch (error) {
+      setServerError("An unexpected error occurred")
       toast.error("An unexpected error occurred")
     } finally {
       setIsSubmitting(false)
@@ -168,6 +178,13 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
   const getCategoryName = (id: string) => {
     const category = roomCategories.find((cat) => cat.id === id)
     return category ? category.name : "Select a category"
+  }
+
+  // Calculate padding based on currency symbol length
+  const getSymbolPadding = () => {
+    const symbolLength = currency.symbol.length
+    // Base padding is 8 (2rem) plus extra for longer symbols
+    return `${Math.max(10, symbolLength * 4 + 8)}px`
   }
 
   return (
@@ -191,7 +208,16 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 overflow-y-auto px-1">
             <div className="space-y-4 sm:space-y-6">
-              {Object.keys(errors).length > 0 && (
+              {/* Display server errors */}
+              {serverError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-sm">{serverError}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Display form validation errors */}
+              {Object.keys(errors).length > 0 && !serverError && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription className="text-sm">
@@ -295,9 +321,19 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                   Price ({currency.code})
                 </Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground">
+                  <div
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      height: "100%",
+                      paddingRight: "4px",
+                      borderRight: "1px solid #e2e8f0",
+                      paddingLeft: "2px",
+                    }}
+                  >
                     {currency.symbol}
-                  </span>
+                  </div>
                   <Input
                     id="price"
                     type="number"
@@ -307,7 +343,10 @@ export function AddRoomDialog({ open, onOpenChange, roomCategories, onRoomAdded 
                       validate: (value) =>
                         (!isNaN(Number(value)) && Number(value) > 0) || "Please enter a valid price greater than 0",
                     })}
-                    className={`pl-8 ${errors.price ? "border-red-500" : ""}`}
+                    style={{
+                      paddingLeft: getSymbolPadding(),
+                    }}
+                    className={`${errors.price ? "border-red-500" : ""}`}
                     disabled={isSubmitting}
                     placeholder={`Enter price in ${currency.code}`}
                   />
