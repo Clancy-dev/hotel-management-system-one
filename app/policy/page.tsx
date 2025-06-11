@@ -14,7 +14,7 @@ import { useCurrency } from "@/hooks/use-currency"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 
-export function PolicyConfig() {
+export default function PolicyConfig() {
   const { policySettings, setPolicyType, updateStandardPolicy, updateCustomPolicy, updateMixedPolicy } = usePolicy()
   const { currency, formatPrice } = useCurrency()
   const [activeTab, setActiveTab] = useState(policySettings.type)
