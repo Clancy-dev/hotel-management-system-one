@@ -377,9 +377,9 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-6">
       {/* Search and Controls */}
-      <div className="space-y-4 mb-6">
+      <div className="space-y-4">
         {/* Search Bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -500,86 +500,89 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
 
       {/* Content Area */}
       {viewMode === "table" ? (
-        <div className="w-full overflow-hidden">
+        <div className="w-full">
+          {/* Table Container with proper overflow handling */}
           <div className="border rounded-lg bg-white">
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-20">{t("roomTable.image")}</TableHead>
-                    <TableHead className="min-w-[100px]">{t("roomTable.room")}</TableHead>
-                    <TableHead className="min-w-[120px]">{t("roomTable.category")}</TableHead>
-                    <TableHead className="min-w-[100px]">{t("roomTable.price")}</TableHead>
-                    <TableHead className="min-w-[150px]">{t("roomTable.description")}</TableHead>
-                    <TableHead className="w-20">{t("roomTable.actions")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentRooms.length === 0 ? (
+              <div className="min-w-[800px]">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
-                        {searchTerm.trim() !== ""
-                          ? `${t("roomTable.noRoomsMatching")} "${searchTerm}"`
-                          : t("roomTable.noRoomsFound")}
-                      </TableCell>
+                      <TableHead className="w-20">{t("roomTable.image")}</TableHead>
+                      <TableHead className="min-w-[100px]">{t("roomTable.room")}</TableHead>
+                      <TableHead className="min-w-[120px]">{t("roomTable.category")}</TableHead>
+                      <TableHead className="min-w-[100px]">{t("roomTable.price")}</TableHead>
+                      <TableHead className="min-w-[200px]">{t("roomTable.description")}</TableHead>
+                      <TableHead className="w-20">{t("roomTable.actions")}</TableHead>
                     </TableRow>
-                  ) : (
-                    currentRooms.map((room) => (
-                      <TableRow key={room.id}>
-                        <TableCell>
-                          {room.images && room.images.length > 0 ? (
-                            <img
-                              src={room.images[0] || "/placeholder.svg"}
-                              alt={`Room ${room.roomNumber}`}
-                              className="h-10 w-10 object-cover rounded"
-                            />
-                          ) : (
-                            <div className="h-10 w-10 bg-muted flex items-center justify-center rounded">
-                              <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-medium">{room.roomNumber}</TableCell>
-                        <TableCell>{getCategoryName(room.categoryId)}</TableCell>
-                        <TableCell className="font-medium">{formatPrice(room.price)}</TableCell>
-                        <TableCell>
-                          <div className="max-w-[200px] truncate" title={room.description}>
-                            {room.description}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">{t("roomTable.openMenu")}</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewDetails(room)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                {t("roomTable.viewDetails")}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEdit(room)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                {t("roomTable.edit")}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleViewGallery(room)}>
-                                <GalleryHorizontal className="mr-2 h-4 w-4" />
-                                {t("roomTable.viewImages")}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDelete(room.id)} className="text-destructive">
-                                <Trash className="mr-2 h-4 w-4" />
-                                {t("roomTable.delete")}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                  </TableHeader>
+                  <TableBody>
+                    {currentRooms.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="h-24 text-center">
+                          {searchTerm.trim() !== ""
+                            ? `${t("roomTable.noRoomsMatching")} "${searchTerm}"`
+                            : t("roomTable.noRoomsFound")}
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      currentRooms.map((room) => (
+                        <TableRow key={room.id}>
+                          <TableCell>
+                            {room.images && room.images.length > 0 ? (
+                              <img
+                                src={room.images[0] || "/placeholder.svg"}
+                                alt={`Room ${room.roomNumber}`}
+                                className="h-10 w-10 object-cover rounded"
+                              />
+                            ) : (
+                              <div className="h-10 w-10 bg-muted flex items-center justify-center rounded">
+                                <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-medium">{room.roomNumber}</TableCell>
+                          <TableCell>{getCategoryName(room.categoryId)}</TableCell>
+                          <TableCell className="font-medium">{formatPrice(room.price)}</TableCell>
+                          <TableCell>
+                            <div className="max-w-[200px] truncate" title={room.description}>
+                              {room.description}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">{t("roomTable.openMenu")}</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewDetails(room)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  {t("roomTable.viewDetails")}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEdit(room)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  {t("roomTable.edit")}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleViewGallery(room)}>
+                                  <GalleryHorizontal className="mr-2 h-4 w-4" />
+                                  {t("roomTable.viewImages")}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDelete(room.id)} className="text-destructive">
+                                  <Trash className="mr-2 h-4 w-4" />
+                                  {t("roomTable.delete")}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </div>
         </div>
@@ -599,7 +602,7 @@ export function RoomTable({ initialRooms, roomCategories }: RoomTableProps) {
 
       {/* Pagination Controls */}
       {filteredRooms.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-sm text-muted-foreground order-2 sm:order-1">
             {t("roomTable.showing")} {indexOfFirstRoom + 1}-{Math.min(indexOfLastRoom, filteredRooms.length)}{" "}
             {t("roomTable.of")} {filteredRooms.length} {t("roomTable.rooms")}
