@@ -9,13 +9,14 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ChevronLeft, ChevronRight, Search, CalendarIcon, Download, X, Filter } from "lucide-react"
+import { ChevronLeft, ChevronRight, Search, CalendarIcon, Download, X, Filter, Eye, ImageIcon } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { useCurrency } from "@/hooks/use-currency"
 import { useLanguage } from "@/hooks/use-language"
 import { useMediaQuery } from "@/hooks/use-media-query"
-
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ImageGallery } from "../rooms/image-gallery"
 
 interface RoomStatusHistory {
   id: string
@@ -30,6 +31,7 @@ interface RoomStatusHistory {
     category: {
       name: string
     }
+    images?: string[]
   }
   status: {
     name: string
@@ -49,6 +51,7 @@ interface Room {
   category?: {
     name: string
   }
+  images?: string[]
 }
 
 interface RoomStatusHistoryTableProps {
@@ -71,6 +74,9 @@ export function RoomStatusHistoryTable({ initialHistory, rooms }: RoomStatusHist
   const [dateFrom, setDateFrom] = useState<Date>()
   const [dateTo, setDateTo] = useState<Date>()
   const [isFilterExpanded, setIsFilterExpanded] = useState(!isMobile)
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<RoomStatusHistory | null>(null)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false)
 
   // Get unique statuses for filter
   const uniqueStatuses = Array.from(new Set(history.map((h) => h.status.name))).map((name) => {
@@ -169,10 +175,34 @@ export function RoomStatusHistoryTable({ initialHistory, rooms }: RoomStatusHist
     window.URL.revokeObjectURL(url)
   }
 
+  const handleViewDetails = (item: RoomStatusHistory) => {
+    setSelectedHistoryItem(item)
+    setIsDetailsOpen(true)
+  }
+
+  const handleViewImages = (item: RoomStatusHistory) => {
+    setSelectedHistoryItem(item)
+    setIsGalleryOpen(true)
+  }
+
   // Mobile history card component
   const HistoryCard = ({ item }: { item: RoomStatusHistory }) => (
     <Card className="mb-4">
       <CardContent className="p-4 space-y-3">
+        {/* Room Image */}
+        {item.room.images && item.room.images.length > 0 && (
+          <div
+            className="aspect-video w-full overflow-hidden rounded-md bg-muted mb-3 cursor-pointer"
+            onClick={() => handleViewImages(item)}
+          >
+            <img
+              src={item.room.images[0] || "/placeholder.svg"}
+              alt={`Room ${item.room.roomNumber}`}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+
         <div className="flex justify-between items-start">
           <div>
             <div className="font-medium">Room {item.room.roomNumber}</div>
@@ -205,9 +235,14 @@ export function RoomStatusHistoryTable({ initialHistory, rooms }: RoomStatusHist
         {item.notes && (
           <div className="text-xs">
             <div className="text-muted-foreground mb-1">Notes:</div>
-            <p className="italic">{item.notes}</p>
+            <p className="italic line-clamp-2">{item.notes}</p>
           </div>
         )}
+
+        <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => handleViewDetails(item)}>
+          <Eye className="h-3 w-3 mr-1" />
+          View Details
+        </Button>
       </CardContent>
     </Card>
   )
@@ -347,6 +382,7 @@ export function RoomStatusHistoryTable({ initialHistory, rooms }: RoomStatusHist
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[60px]">Image</TableHead>
                   <TableHead className="w-[120px]">Date & Time</TableHead>
                   <TableHead className="w-[80px]">Room</TableHead>
                   <TableHead className="w-[100px]">Category</TableHead>
@@ -354,12 +390,13 @@ export function RoomStatusHistoryTable({ initialHistory, rooms }: RoomStatusHist
                   <TableHead className="w-[100px]">Changed By</TableHead>
                   <TableHead className="w-[120px]">Guest</TableHead>
                   <TableHead>Notes</TableHead>
+                  <TableHead className="w-[60px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {currentItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
+                    <TableCell colSpan={9} className="h-24 text-center">
                       {searchTerm.trim() !== "" ||
                       selectedRoom !== "all" ||
                       selectedStatus !== "all" ||
@@ -372,6 +409,21 @@ export function RoomStatusHistoryTable({ initialHistory, rooms }: RoomStatusHist
                 ) : (
                   currentItems.map((item) => (
                     <TableRow key={item.id}>
+                      <TableCell>
+                        {item.room.images && item.room.images.length > 0 ? (
+                          <div className="cursor-pointer" onClick={() => handleViewImages(item)}>
+                            <img
+                              src={item.room.images[0] || "/placeholder.svg"}
+                              alt={`Room ${item.room.roomNumber}`}
+                              className="h-10 w-10 object-cover rounded"
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-10 w-10 bg-muted flex items-center justify-center rounded">
+                            <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="font-mono text-sm">
                         {format(new Date(item.changedAt), "MMM dd, yyyy")}
                         <br />
@@ -414,6 +466,12 @@ export function RoomStatusHistoryTable({ initialHistory, rooms }: RoomStatusHist
                             <span className="text-muted-foreground text-sm">No notes</span>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewDetails(item)}>
+                          <Eye className="h-4 w-4" />
+                          <span className="sr-only">View details</span>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -486,6 +544,105 @@ export function RoomStatusHistoryTable({ initialHistory, rooms }: RoomStatusHist
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Status History Details Dialog */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Status Change Details</DialogTitle>
+            <DialogDescription>
+              {selectedHistoryItem && (
+                <>
+                  Room {selectedHistoryItem.room.roomNumber} -{" "}
+                  {format(new Date(selectedHistoryItem.changedAt), "PPP p")}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedHistoryItem && (
+            <div className="flex-1 overflow-y-auto">
+              <div className="space-y-6">
+                {/* Room Image */}
+                {selectedHistoryItem.room.images && selectedHistoryItem.room.images.length > 0 && (
+                  <div
+                    className="aspect-video w-full overflow-hidden rounded-md bg-muted cursor-pointer"
+                    onClick={() => {
+                      setIsDetailsOpen(false)
+                      setIsGalleryOpen(true)
+                    }}
+                  >
+                    <img
+                      src={selectedHistoryItem.room.images[0] || "/placeholder.svg"}
+                      alt={`Room ${selectedHistoryItem.room.roomNumber}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                {/* Status Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Room</h3>
+                    <p className="font-medium">
+                      {selectedHistoryItem.room.roomNumber} ({selectedHistoryItem.room.category.name})
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Status</h3>
+                    <Badge
+                      variant="secondary"
+                      className="text-white"
+                      style={{ backgroundColor: selectedHistoryItem.status.color }}
+                    >
+                      {selectedHistoryItem.status.name}
+                    </Badge>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Changed By</h3>
+                    <p>{selectedHistoryItem.changedBy || "System"}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Date & Time</h3>
+                    <p className="font-mono">{format(new Date(selectedHistoryItem.changedAt), "PPP p")}</p>
+                  </div>
+                </div>
+
+                {/* Guest Information */}
+                {selectedHistoryItem.booking && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Guest</h3>
+                    <p>
+                      {selectedHistoryItem.booking.guest.firstName} {selectedHistoryItem.booking.guest.lastName}
+                    </p>
+                  </div>
+                )}
+
+                {/* Notes */}
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Notes</h3>
+                  {selectedHistoryItem.notes ? (
+                    <div className="bg-muted p-3 rounded-md whitespace-pre-wrap text-sm">
+                      {selectedHistoryItem.notes}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">No notes provided</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Gallery */}
+      {selectedHistoryItem && (
+        <ImageGallery
+          images={selectedHistoryItem.room.images || []}
+          open={isGalleryOpen}
+          onOpenChange={setIsGalleryOpen}
+        />
       )}
     </div>
   )

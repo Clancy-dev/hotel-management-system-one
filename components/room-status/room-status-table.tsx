@@ -17,13 +17,15 @@ import {
   Loader2,
   Grid3X3,
   Filter,
+  ImageIcon,
 } from "lucide-react"
 import { useCurrency } from "@/hooks/use-currency"
 import { useLanguage } from "@/hooks/use-language"
 import { UpdateRoomStatusDialog } from "./update-room-status-dialog"
 import { GuestBookingDialog } from "./guest-booking-dialog"
+import { RoomDetailsDialog } from "./room-details-dialog"
 import { useMediaQuery } from "@/hooks/use-media-query"
-// import { useMediaQuery } from "@/hooks/use-media-query"
+import { getRoomStatusHistory } from "@/actions/room-status"
 
 interface RoomStatus {
   id: string
@@ -69,6 +71,7 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
   const [isUpdateStatusOpen, setIsUpdateStatusOpen] = useState(false)
   const [isBookingOpen, setIsBookingOpen] = useState(false)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState("")
   const [filteredRooms, setFilteredRooms] = useState<Room[]>(rooms)
@@ -79,6 +82,8 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
   const [isInitialized, setIsInitialized] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
+  const [statusHistory, setStatusHistory] = useState<any[]>([])
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
 
   // Load user preferences from localStorage
   useEffect(() => {
@@ -219,6 +224,27 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
     setIsBookingOpen(true)
   }
 
+  const handleViewDetails = async (room: Room) => {
+    setSelectedRoom(room)
+    setIsLoadingHistory(true)
+
+    try {
+      // Fetch room status history
+      const historyResult = await getRoomStatusHistory(room.id)
+      if (historyResult.success && historyResult.data) {
+        setStatusHistory(historyResult.data)
+      } else {
+        setStatusHistory([])
+      }
+    } catch (error) {
+      console.error("Failed to fetch room status history:", error)
+      setStatusHistory([])
+    } finally {
+      setIsLoadingHistory(false)
+      setIsDetailsOpen(true)
+    }
+  }
+
   const resetFilters = () => {
     setSearchTerm("")
     setStatusFilter("all")
@@ -236,6 +262,21 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
   // Grid Card Component
   const RoomStatusCard = ({ room }: { room: Room }) => (
     <div className="bg-white border rounded-lg p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow">
+      {/* Room Image */}
+      <div className="aspect-video w-full overflow-hidden rounded-md bg-muted mb-3">
+        {room.images && room.images.length > 0 ? (
+          <img
+            src={room.images[0] || "/placeholder.svg"}
+            alt={`Room ${room.roomNumber}`}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <ImageIcon className="h-12 w-12 text-muted-foreground" />
+          </div>
+        )}
+      </div>
+
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-lg">Room {room.roomNumber}</h3>
         <DropdownMenu>
@@ -246,6 +287,10 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleViewDetails(room)}>
+              <Eye className="mr-2 h-4 w-4" />
+              View Details
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleUpdateStatus(room)}>
               <Edit className="mr-2 h-4 w-4" />
               Update Status
@@ -401,6 +446,7 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[60px]">Image</TableHead>
                     <TableHead className="w-[80px]">Room</TableHead>
                     <TableHead className="w-[100px]">Status</TableHead>
                     <TableHead className="w-[100px]">Category</TableHead>
@@ -412,7 +458,7 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
                 <TableBody>
                   {currentRooms.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
+                      <TableCell colSpan={7} className="h-24 text-center">
                         {searchTerm.trim() !== "" || statusFilter !== "all" || categoryFilter !== "all"
                           ? `No rooms found matching your filters`
                           : "No rooms found"}
@@ -421,6 +467,19 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
                   ) : (
                     currentRooms.map((room) => (
                       <TableRow key={room.id}>
+                        <TableCell>
+                          {room.images && room.images.length > 0 ? (
+                            <img
+                              src={room.images[0] || "/placeholder.svg"}
+                              alt={`Room ${room.roomNumber}`}
+                              className="h-10 w-10 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="h-10 w-10 bg-muted flex items-center justify-center rounded">
+                              <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="font-medium">{room.roomNumber}</TableCell>
                         <TableCell>{getStatusBadge(room.currentStatus)}</TableCell>
                         <TableCell>{getCategoryName(room.categoryId)}</TableCell>
@@ -439,6 +498,10 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewDetails(room)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleUpdateStatus(room)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Update Status
@@ -516,8 +579,13 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
         room={selectedRoom}
         roomStatuses={roomStatuses}
         onStatusUpdated={(updatedRoom) => {
-          if (updatedRoom && "id" in updatedRoom) {
-            setRooms(rooms.map((room) => (room.id === updatedRoom.id ? (updatedRoom as Room) : room)))
+          if (updatedRoom && typeof updatedRoom === "object" && "id" in updatedRoom) {
+            // Update the room in the local state
+            setRooms((prevRooms) =>
+              prevRooms.map((room) =>
+                room.id === updatedRoom.id ? { ...room, currentStatus: (updatedRoom as Room).currentStatus } : room,
+              ),
+            )
           }
         }}
       />
@@ -527,10 +595,22 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
         onOpenChange={setIsBookingOpen}
         room={selectedRoom}
         onBookingCreated={(updatedRoom) => {
-          if (updatedRoom && "id" in updatedRoom) {
-            setRooms(rooms.map((room) => (room.id === updatedRoom.id ? (updatedRoom as Room) : room)))
+          if (updatedRoom && typeof updatedRoom === "object" && "id" in updatedRoom) {
+            // Update the room in the local state
+            setRooms((prevRooms) =>
+              prevRooms.map((room) =>
+                room.id === updatedRoom.id ? { ...room, currentStatus: (updatedRoom as Room).currentStatus } : room,
+              ),
+            )
           }
         }}
+      />
+
+      <RoomDetailsDialog
+        open={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
+        room={selectedRoom}
+        statusHistory={statusHistory}
       />
     </div>
   )
