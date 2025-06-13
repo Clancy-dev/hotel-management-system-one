@@ -20,6 +20,7 @@ export default function RootLayout({
         <LanguageProvider>
            <PolicyProvider>
           <CurrencyProvider>
+            
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange={false}>
             <Toaster position="top-right" />
             <SidebarProvider>

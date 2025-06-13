@@ -13,16 +13,17 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  ArrowUpDown,
-  LayoutGrid,
   List,
   Loader2,
   Grid3X3,
+  Filter,
 } from "lucide-react"
 import { useCurrency } from "@/hooks/use-currency"
 import { useLanguage } from "@/hooks/use-language"
 import { UpdateRoomStatusDialog } from "./update-room-status-dialog"
 import { GuestBookingDialog } from "./guest-booking-dialog"
+import { useMediaQuery } from "@/hooks/use-media-query"
+// import { useMediaQuery } from "@/hooks/use-media-query"
 
 interface RoomStatus {
   id: string
@@ -62,6 +63,7 @@ type ViewMode = "table" | "grid"
 export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: RoomStatusTableProps) {
   const { formatPrice } = useCurrency()
   const { t } = useLanguage()
+  const isMobile = useMediaQuery("(max-width: 640px)")
 
   const [rooms, setRooms] = useState<Room[]>(initialRooms)
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
@@ -72,9 +74,11 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
   const [filteredRooms, setFilteredRooms] = useState<Room[]>(rooms)
   const [sortField, setSortField] = useState<SortField>("roomNumber")
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
-  const [rowsPerPage, setRowsPerPage] = useState(10)
-  const [viewMode, setViewMode] = useState<ViewMode>("table")
+  const [rowsPerPage, setRowsPerPage] = useState(isMobile ? 5 : 10)
+  const [viewMode, setViewMode] = useState<ViewMode>(isMobile ? "grid" : "table")
   const [isInitialized, setIsInitialized] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [categoryFilter, setCategoryFilter] = useState<string>("all")
 
   // Load user preferences from localStorage
   useEffect(() => {
@@ -92,6 +96,14 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
       setIsInitialized(true)
     }
   }, [])
+
+  // Update view mode based on screen size
+  useEffect(() => {
+    if (isMobile) {
+      setViewMode("grid")
+      if (rowsPerPage > 5) setRowsPerPage(5)
+    }
+  }, [isMobile, rowsPerPage])
 
   // Save user preferences to localStorage
   useEffect(() => {
@@ -127,12 +139,22 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
       })
     }
 
+    // Apply status filter
+    if (statusFilter !== "all") {
+      result = result.filter((room) => room.currentStatus?.id === statusFilter)
+    }
+
+    // Apply category filter
+    if (categoryFilter !== "all") {
+      result = result.filter((room) => room.categoryId === categoryFilter)
+    }
+
     // Apply sorting
     result = sortRooms(result, sortField, sortDirection)
 
     setFilteredRooms(result)
     setCurrentPage(1)
-  }, [searchTerm, rooms, sortField, sortDirection])
+  }, [searchTerm, rooms, sortField, sortDirection, statusFilter, categoryFilter])
 
   const sortRooms = (roomsToSort: Room[], field: SortField, direction: SortDirection): Room[] => {
     return [...roomsToSort].sort((a, b) => {
@@ -195,6 +217,14 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
   const handleBookRoom = (room: Room) => {
     setSelectedRoom(room)
     setIsBookingOpen(true)
+  }
+
+  const resetFilters = () => {
+    setSearchTerm("")
+    setStatusFilter("all")
+    setCategoryFilter("all")
+    setSortField("roomNumber")
+    setSortDirection("asc")
   }
 
   // Pagination logic
@@ -265,208 +295,168 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search rooms by number, category, status, or description..."
+            placeholder="Search rooms..."
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        {/* Controls Row */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-2">
-            {/* View Mode Toggle */}
+        {/* Filters */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          {/* Status Filter */}
+          <div className="space-y-1">
+            <label className="text-xs font-medium">Filter by Status</label>
+            <select
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">All Statuses</option>
+              {roomStatuses.map((status) => (
+                <option key={status.id} value={status.id}>
+                  {status.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Category Filter */}
+          <div className="space-y-1">
+            <label className="text-xs font-medium">Filter by Category</label>
+            <select
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="all">All Categories</option>
+              {roomCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* View Mode and Rows per page */}
+          <div className="flex flex-col space-y-1">
+            <label className="text-xs font-medium">View Mode</label>
             <div className="flex border rounded-md">
               <Button
                 variant={viewMode === "table" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode("table")}
-                className="rounded-r-none"
+                className="rounded-r-none flex-1"
+                disabled={isMobile}
               >
-                <List className="h-4 w-4" />
-                <span className="hidden sm:inline ml-2">Table</span>
+                <List className="h-4 w-4 mr-1" />
+                <span className="text-xs">Table</span>
               </Button>
               <Button
                 variant={viewMode === "grid" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode("grid")}
-                className="rounded-l-none"
+                className="rounded-l-none flex-1"
               >
-                <Grid3X3 className="h-4 w-4" />
-                <span className="hidden sm:inline ml-2">Grid</span>
+                <Grid3X3 className="h-4 w-4 mr-1" />
+                <span className="text-xs">Grid</span>
               </Button>
             </div>
-
-            {/* Rows per page selector */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <LayoutGrid className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Rows: </span>
-                  <span>{rowsPerPage}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {[5, 10, 15, 20, 50, 100].map((value) => (
-                  <DropdownMenuItem
-                    key={value}
-                    onClick={() => {
-                      setRowsPerPage(value)
-                      setCurrentPage(1)
-                    }}
-                  >
-                    {value} rows
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Sort selector */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <ArrowUpDown className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Sort</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSortField("roomNumber")
-                    setSortDirection("asc")
-                  }}
-                >
-                  Room Number (A-Z)
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSortField("roomNumber")
-                    setSortDirection("desc")
-                  }}
-                >
-                  Room Number (Z-A)
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSortField("status")
-                    setSortDirection("asc")
-                  }}
-                >
-                  Status (A-Z)
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSortField("status")
-                    setSortDirection("desc")
-                  }}
-                >
-                  Status (Z-A)
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSortField("category")
-                    setSortDirection("asc")
-                  }}
-                >
-                  Category (A-Z)
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSortField("category")
-                    setSortDirection("desc")
-                  }}
-                >
-                  Category (Z-A)
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSortField("price")
-                    setSortDirection("asc")
-                  }}
-                >
-                  Price (Low to High)
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSortField("price")
-                    setSortDirection("desc")
-                  }}
-                >
-                  Price (High to Low)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
 
-          {/* Results Info */}
-          <div className="text-sm text-muted-foreground">{filteredRooms.length} room(s) found</div>
+          {/* Rows per page */}
+          <div className="flex flex-col space-y-1">
+            <label className="text-xs font-medium">Rows per page</label>
+            <select
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              value={rowsPerPage}
+              onChange={(e) => setRowsPerPage(Number(e.target.value))}
+            >
+              <option value="5">5 rows</option>
+              <option value="10">10 rows</option>
+              <option value="15">15 rows</option>
+              <option value="20">20 rows</option>
+              <option value="50">50 rows</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Controls Row */}
+        <div className="flex flex-wrap gap-2 justify-between items-center">
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={resetFilters} className="text-xs">
+              <Filter className="h-3 w-3 mr-1" />
+              Reset Filters
+            </Button>
+          </div>
+          <div className="text-xs text-muted-foreground">{filteredRooms.length} room(s) found</div>
         </div>
       </div>
 
       {/* Content Area */}
-      {viewMode === "table" ? (
+      {viewMode === "table" && !isMobile ? (
         <div className="w-full overflow-hidden">
           <div className="border rounded-lg bg-white">
             <div className="overflow-x-auto">
-              <div className="min-w-[800px]">
-                <Table>
-                  <TableHeader>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[80px]">Room</TableHead>
+                    <TableHead className="w-[100px]">Status</TableHead>
+                    <TableHead className="w-[100px]">Category</TableHead>
+                    <TableHead className="w-[80px]">Price</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="w-[60px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {currentRooms.length === 0 ? (
                     <TableRow>
-                      <TableHead className="min-w-[100px]">Room</TableHead>
-                      <TableHead className="min-w-[120px]">Status</TableHead>
-                      <TableHead className="min-w-[120px]">Category</TableHead>
-                      <TableHead className="min-w-[100px]">Price</TableHead>
-                      <TableHead className="min-w-[150px]">Description</TableHead>
-                      <TableHead className="w-20">Actions</TableHead>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        {searchTerm.trim() !== "" || statusFilter !== "all" || categoryFilter !== "all"
+                          ? `No rooms found matching your filters`
+                          : "No rooms found"}
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {currentRooms.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center">
-                          {searchTerm.trim() !== "" ? `No rooms found matching "${searchTerm}"` : "No rooms found"}
+                  ) : (
+                    currentRooms.map((room) => (
+                      <TableRow key={room.id}>
+                        <TableCell className="font-medium">{room.roomNumber}</TableCell>
+                        <TableCell>{getStatusBadge(room.currentStatus)}</TableCell>
+                        <TableCell>{getCategoryName(room.categoryId)}</TableCell>
+                        <TableCell className="font-medium">{formatPrice(room.price)}</TableCell>
+                        <TableCell>
+                          <div className="max-w-[200px] truncate" title={room.description}>
+                            {room.description}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Open menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(room)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Update Status
+                              </DropdownMenuItem>
+                              {room.currentStatus?.name === "Available" && (
+                                <DropdownMenuItem onClick={() => handleBookRoom(room)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Book Room
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ) : (
-                      currentRooms.map((room) => (
-                        <TableRow key={room.id}>
-                          <TableCell className="font-medium">{room.roomNumber}</TableCell>
-                          <TableCell>{getStatusBadge(room.currentStatus)}</TableCell>
-                          <TableCell>{getCategoryName(room.categoryId)}</TableCell>
-                          <TableCell className="font-medium">{formatPrice(room.price)}</TableCell>
-                          <TableCell>
-                            <div className="max-w-[200px] truncate" title={room.description}>
-                              {room.description}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                  <span className="sr-only">Open menu</span>
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleUpdateStatus(room)}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Update Status
-                                </DropdownMenuItem>
-                                {room.currentStatus?.name === "Available" && (
-                                  <DropdownMenuItem onClick={() => handleBookRoom(room)}>
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    Book Room
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
           </div>
         </div>
@@ -474,7 +464,9 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {currentRooms.length === 0 ? (
             <div className="col-span-full text-center py-12 text-muted-foreground">
-              {searchTerm.trim() !== "" ? `No rooms found matching "${searchTerm}"` : "No rooms found"}
+              {searchTerm.trim() !== "" || statusFilter !== "all" || categoryFilter !== "all"
+                ? `No rooms found matching your filters`
+                : "No rooms found"}
             </div>
           ) : (
             currentRooms.map((room) => <RoomStatusCard key={room.id} room={room} />)
@@ -485,7 +477,7 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
       {/* Pagination Controls */}
       {filteredRooms.length > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
-          <div className="text-sm text-muted-foreground order-2 sm:order-1">
+          <div className="text-xs text-muted-foreground order-2 sm:order-1">
             Showing {indexOfFirstRoom + 1}-{Math.min(indexOfLastRoom, filteredRooms.length)} of {filteredRooms.length}{" "}
             rooms
           </div>
@@ -495,20 +487,22 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
               size="sm"
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
+              className="h-8 px-2"
             >
               <ChevronLeft className="h-4 w-4" />
-              <span className="hidden sm:inline ml-1">Previous</span>
+              <span className="sr-only sm:not-sr-only sm:ml-1 text-xs">Previous</span>
             </Button>
-            <span className="text-sm px-2">
-              Page {currentPage} of {totalPages || 1}
+            <span className="text-xs px-2">
+              {currentPage} / {totalPages || 1}
             </span>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages || totalPages === 0}
+              className="h-8 px-2"
             >
-              <span className="hidden sm:inline mr-1">Next</span>
+              <span className="sr-only sm:not-sr-only sm:mr-1 text-xs">Next</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

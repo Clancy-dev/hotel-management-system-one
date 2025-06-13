@@ -5,15 +5,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ChevronLeft, ChevronRight, Search, CalendarIcon, Download, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Search, CalendarIcon, Download, X, Filter } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { useCurrency } from "@/hooks/use-currency"
 import { useLanguage } from "@/hooks/use-language"
+import { useMediaQuery } from "@/hooks/use-media-query"
+
 
 interface RoomStatusHistory {
   id: string
@@ -57,22 +59,31 @@ interface RoomStatusHistoryTableProps {
 export function RoomStatusHistoryTable({ initialHistory, rooms }: RoomStatusHistoryTableProps) {
   const { formatPrice } = useCurrency()
   const { t } = useLanguage()
+  const isMobile = useMediaQuery("(max-width: 640px)")
 
   const [history, setHistory] = useState<RoomStatusHistory[]>(initialHistory)
   const [filteredHistory, setFilteredHistory] = useState<RoomStatusHistory[]>(history)
   const [currentPage, setCurrentPage] = useState(1)
-  const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [rowsPerPage, setRowsPerPage] = useState(isMobile ? 5 : 10)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRoom, setSelectedRoom] = useState<string>("all")
   const [selectedStatus, setSelectedStatus] = useState<string>("all")
   const [dateFrom, setDateFrom] = useState<Date>()
   const [dateTo, setDateTo] = useState<Date>()
+  const [isFilterExpanded, setIsFilterExpanded] = useState(!isMobile)
 
   // Get unique statuses for filter
   const uniqueStatuses = Array.from(new Set(history.map((h) => h.status.name))).map((name) => {
     const status = history.find((h) => h.status.name === name)?.status
     return { name, color: status?.color || "#000000" }
   })
+
+  // Update rows per page based on screen size
+  useEffect(() => {
+    if (isMobile && rowsPerPage > 5) {
+      setRowsPerPage(5)
+    }
+  }, [isMobile, rowsPerPage])
 
   // Filter and search logic
   useEffect(() => {
@@ -158,105 +169,159 @@ export function RoomStatusHistoryTable({ initialHistory, rooms }: RoomStatusHist
     window.URL.revokeObjectURL(url)
   }
 
+  // Mobile history card component
+  const HistoryCard = ({ item }: { item: RoomStatusHistory }) => (
+    <Card className="mb-4">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex justify-between items-start">
+          <div>
+            <div className="font-medium">Room {item.room.roomNumber}</div>
+            <div className="text-xs text-muted-foreground">{item.room.category.name}</div>
+          </div>
+          <Badge variant="secondary" className="text-white text-xs" style={{ backgroundColor: item.status.color }}>
+            {item.status.name}
+          </Badge>
+        </div>
+
+        <div className="text-xs space-y-1">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Date:</span>
+            <span className="font-mono">{format(new Date(item.changedAt), "MMM dd, yyyy HH:mm")}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Changed By:</span>
+            <span>{item.changedBy || "System"}</span>
+          </div>
+          {item.booking && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Guest:</span>
+              <span>
+                {item.booking.guest.firstName} {item.booking.guest.lastName}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {item.notes && (
+          <div className="text-xs">
+            <div className="text-muted-foreground mb-1">Notes:</div>
+            <p className="italic">{item.notes}</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+
   return (
     <div className="w-full space-y-6">
       {/* Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filters & Search</CardTitle>
-          <CardDescription>Filter the status history by room, status, date range, or search terms</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-4 space-y-4">
           {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by room, status, guest name, or notes..."
+              placeholder="Search history..."
               className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
+          {/* Filter Toggle for Mobile */}
+          {isMobile && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+              className="w-full flex items-center justify-center"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              {isFilterExpanded ? "Hide Filters" : "Show Filters"}
+            </Button>
+          )}
+
           {/* Filter Controls */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Room Filter */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Room</label>
-              <Select value={selectedRoom} onValueChange={setSelectedRoom}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Rooms" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Rooms</SelectItem>
-                  {rooms.map((room) => (
-                    <SelectItem key={room.id} value={room.id}>
-                      Room {room.roomNumber} ({room.category?.name})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {isFilterExpanded && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Room Filter */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Room</label>
+                <Select value={selectedRoom} onValueChange={setSelectedRoom}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Rooms" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Rooms</SelectItem>
+                    {rooms.map((room) => (
+                      <SelectItem key={room.id} value={room.id}>
+                        Room {room.roomNumber} ({room.category?.name})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {/* Status Filter */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {uniqueStatuses.map((status) => (
-                    <SelectItem key={status.name} value={status.name}>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }} />
-                        <span>{status.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              {/* Status Filter */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Status</label>
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    {uniqueStatuses.map((status) => (
+                      <SelectItem key={status.name} value={status.name}>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }} />
+                          <span>{status.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {/* Date From */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">From Date</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn("w-full justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateFrom ? format(dateFrom, "PPP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus />
-                </PopoverContent>
-              </Popover>
-            </div>
+              {/* Date From */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">From Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn("w-full justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateFrom ? format(dateFrom, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-            {/* Date To */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">To Date</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn("w-full justify-start text-left font-normal", !dateTo && "text-muted-foreground")}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateTo ? format(dateTo, "PPP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus />
-                </PopoverContent>
-              </Popover>
+              {/* Date To */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">To Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn("w-full justify-start text-left font-normal", !dateTo && "text-muted-foreground")}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateTo ? format(dateTo, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Filter Actions */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -275,27 +340,26 @@ export function RoomStatusHistoryTable({ initialHistory, rooms }: RoomStatusHist
         </CardContent>
       </Card>
 
-      {/* History Table */}
-      <div className="border rounded-lg bg-white overflow-hidden">
-        <div className="overflow-x-auto">
-          <div className="min-w-[1000px]">
+      {/* History Table for Desktop */}
+      {!isMobile ? (
+        <div className="border rounded-lg bg-white overflow-hidden">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[120px]">Date & Time</TableHead>
-                  <TableHead className="min-w-[80px]">Room</TableHead>
-                  <TableHead className="min-w-[100px]">Category</TableHead>
-                  <TableHead className="min-w-[100px]">New Status</TableHead>
-                  <TableHead className="min-w-[100px]">Previous Status</TableHead>
-                  <TableHead className="min-w-[100px]">Changed By</TableHead>
-                  <TableHead className="min-w-[120px]">Guest</TableHead>
-                  <TableHead className="min-w-[200px]">Notes</TableHead>
+                  <TableHead className="w-[120px]">Date & Time</TableHead>
+                  <TableHead className="w-[80px]">Room</TableHead>
+                  <TableHead className="w-[100px]">Category</TableHead>
+                  <TableHead className="w-[100px]">New Status</TableHead>
+                  <TableHead className="w-[100px]">Changed By</TableHead>
+                  <TableHead className="w-[120px]">Guest</TableHead>
+                  <TableHead>Notes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {currentItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">
+                    <TableCell colSpan={7} className="h-24 text-center">
                       {searchTerm.trim() !== "" ||
                       selectedRoom !== "all" ||
                       selectedStatus !== "all" ||
@@ -325,15 +389,6 @@ export function RoomStatusHistoryTable({ initialHistory, rooms }: RoomStatusHist
                         >
                           {item.status.name}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {item.previousStatusId ? (
-                          <Badge variant="outline" className="text-xs">
-                            Previous
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">Initial</span>
-                        )}
                       </TableCell>
                       <TableCell>
                         <span className="text-sm">{item.changedBy || "System"}</span>
@@ -367,15 +422,28 @@ export function RoomStatusHistoryTable({ initialHistory, rooms }: RoomStatusHist
             </Table>
           </div>
         </div>
-      </div>
+      ) : (
+        // Mobile Card View
+        <div className="space-y-2">
+          {currentItems.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {searchTerm.trim() !== "" || selectedRoom !== "all" || selectedStatus !== "all" || dateFrom || dateTo
+                ? "No records found matching your filters"
+                : "No status history found"}
+            </div>
+          ) : (
+            currentItems.map((item) => <HistoryCard key={item.id} item={item} />)
+          )}
+        </div>
+      )}
 
       {/* Pagination */}
       {filteredHistory.length > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-muted-foreground">Rows per page:</span>
+            <span className="text-xs text-muted-foreground">Rows per page:</span>
             <Select value={rowsPerPage.toString()} onValueChange={(value) => setRowsPerPage(Number(value))}>
-              <SelectTrigger className="w-20">
+              <SelectTrigger className="w-16 h-8">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -387,7 +455,7 @@ export function RoomStatusHistoryTable({ initialHistory, rooms }: RoomStatusHist
             </Select>
           </div>
 
-          <div className="text-sm text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredHistory.length)} of{" "}
             {filteredHistory.length} records
           </div>
@@ -398,20 +466,22 @@ export function RoomStatusHistoryTable({ initialHistory, rooms }: RoomStatusHist
               size="sm"
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
+              className="h-8 px-2"
             >
               <ChevronLeft className="h-4 w-4" />
-              Previous
+              <span className="sr-only sm:not-sr-only sm:ml-1 text-xs">Prev</span>
             </Button>
-            <span className="text-sm px-2">
-              Page {currentPage} of {totalPages || 1}
+            <span className="text-xs px-2">
+              {currentPage} / {totalPages || 1}
             </span>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages || totalPages === 0}
+              className="h-8 px-2"
             >
-              Next
+              <span className="sr-only sm:not-sr-only sm:mr-1 text-xs">Next</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

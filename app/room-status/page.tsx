@@ -1,4 +1,5 @@
-import { getRoomsWithStatus, getRoomStatuses, initializeDefaultStatuses } from "@/actions/room-status"
+import { getRoomStatuses, initializeDefaultStatuses } from "@/actions/room-status"
+import { getRooms } from "@/actions/room"
 import { getCategories } from "@/actions/category"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { RoomStatusTable } from "@/components/room-status/room-status-table"
@@ -9,7 +10,7 @@ export default async function RoomStatusPage() {
   await initializeDefaultStatuses()
 
   // Fetch rooms with status and available statuses
-  const roomsResult = await getRoomsWithStatus()
+  const roomsResult = await getRooms()
   const statusesResult = await getRoomStatuses()
   const categoriesResult = await getCategories()
 
@@ -27,31 +28,28 @@ export default async function RoomStatusPage() {
   const categories = Array.isArray(categoriesResult?.data) && categoriesResult.success ? categoriesResult.data : []
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 md:p-8 lg:p-10 xl:p-12">
+    <div className="container mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div className="text-center md:text-left">
+        <div className="w-full md:w-auto text-center md:text-left">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Room Status</h1>
           <p className="text-muted-foreground">Track and manage the status of all hotel rooms</p>
         </div>
-        <RoomStatusTopButtons
-          statuses={statuses.map((status: any) => ({
-            ...status,
-            description: status.description === null ? undefined : status.description,
-          }))}
-        />
+        <div className="w-full md:w-auto flex justify-center md:justify-end">
+          <RoomStatusTopButtons statuses={statuses.map(s => ({ ...s, description: s.description === null ? undefined : s.description }))} />
+        </div>
       </div>
 
-      <Card className="overflow-x-auto">
+      <Card className="overflow-hidden">
         <CardHeader className="p-4 sm:p-6">
           <CardTitle>Room Status Management</CardTitle>
           <CardDescription>View and update the status of all rooms in real-time</CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6">
+        <CardContent className="p-2 sm:p-4 md:p-6">
           <RoomStatusTable
             initialRooms={rooms}
-            roomStatuses={statuses.map((status: any) => ({
-              ...status,
-              description: status.description === null ? undefined : status.description,
+            roomStatuses={statuses.map(s => ({
+              ...s,
+              description: s.description === null ? undefined : s.description,
             }))}
             roomCategories={categories}
           />
