@@ -3,15 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { getRooms } from "@/actions/room"
+// import { getRooms } from "@/actions/room"
 import { getRoomStatuses } from "@/actions/room-status"
+import { getRooms } from "@/actions/room"
 
 export default async function AddGuestPage() {
   const roomsResult = await getRooms()
-  const rooms = roomsResult.success ? roomsResult.data : []
+  const rooms = roomsResult && roomsResult.success && Array.isArray(roomsResult.data) ? roomsResult.data : []
 
   const statusesResult = await getRoomStatuses()
-  const statuses = statusesResult.success ? statusesResult.data : []
+  const statuses = statusesResult && statusesResult.success && Array.isArray(statusesResult.data) ? statusesResult.data : []
 
   return (
     <div className="container mx-auto p-4 sm:p-6 md:p-8 lg:p-10 xl:p-12">
@@ -36,7 +37,18 @@ export default async function AddGuestPage() {
           <CardDescription>Enter the guest details and room booking information</CardDescription>
         </CardHeader>
         <CardContent>
-          <AddGuestForm rooms={rooms} statuses={statuses} />
+          <AddGuestForm
+            rooms={rooms.map(room => ({
+              ...room,
+              category: room.category
+                ? { id: room.category.id, name: room.category.name }
+                : undefined,
+            }))}
+            statuses={statuses.map((status) => ({
+              ...status,
+              description: status.description === null ? undefined : status.description,
+            }))}
+          />
         </CardContent>
       </Card>
     </div>

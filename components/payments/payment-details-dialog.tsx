@@ -26,15 +26,15 @@ interface DetailedPayment {
   amount: number
   paymentMode: string
   receiptNumber?: string | null
-  depositPaid?: number
+  depositPaid?: number | null
   roomRate: number
-  discountType?: string
-  discountAmount?: number
+  discountType?: string | null
+  discountAmount?: number | null
   totalBill: number
   balanceRemaining: number
   status: string
-  mobileMoneyProvider?: string
-  mobileMoneyNumber?: string
+  mobileMoneyProvider?: string | null
+  mobileMoneyNumber?: string | null
   paymentDate: Date
   createdAt: Date
   booking: {
@@ -43,12 +43,12 @@ interface DetailedPayment {
     checkOutDate: Date
     numberOfGuests: number
     purposeOfStay: string
-    company?: string
+    company?: string | null
     guest: {
       firstName: string
       lastName: string
       phoneNumber: string
-      email?: string
+      email?: string | null
       nationality: string
     }
     room: {
@@ -88,7 +88,31 @@ export function PaymentDetailsDialog({
     try {
       const result = await getPaymentById(paymentId)
       if (result.success && result.data) {
-        setPayment(result.data)
+        // Transform the data to match the DetailedPayment interface
+        const transformedData: DetailedPayment = {
+          ...result.data,
+          receiptNumber: result.data.receiptNumber || null,
+          depositPaid: result.data.depositPaid || null,
+          discountType: result.data.discountType || null,
+          discountAmount: result.data.discountAmount || null,
+          mobileMoneyProvider: result.data.mobileMoneyProvider || null,
+          mobileMoneyNumber: result.data.mobileMoneyNumber || null,
+          booking: {
+            ...result.data.booking,
+            company: result.data.booking.company || null,
+            guest: {
+              ...result.data.booking.guest,
+              email: result.data.booking.guest.email || null,
+            },
+            room: {
+              ...result.data.booking.room,
+              category: result.data.booking.room.category
+                ? { name: result.data.booking.room.category.name }
+                : { name: "Unknown" },
+            },
+          },
+        }
+        setPayment(transformedData)
       } else {
         toast.error(result.error || "Failed to load payment details")
         onOpenChange(false)
@@ -420,7 +444,19 @@ export function PaymentDetailsDialog({
       <EditPaymentDialog
         open={isEditOpen}
         onOpenChange={setIsEditOpen}
-        payment={payment}
+        payment={
+          payment
+            ? {
+                ...payment,
+                receiptNumber: payment.receiptNumber ?? undefined,
+                depositPaid: payment.depositPaid ?? undefined,
+                discountType: payment.discountType ?? undefined,
+                discountAmount: payment.discountAmount ?? undefined,
+                mobileMoneyProvider: payment.mobileMoneyProvider ?? undefined,
+                mobileMoneyNumber: payment.mobileMoneyNumber ?? undefined,
+              }
+            : null
+        }
         onPaymentUpdated={handlePaymentUpdated}
       />
     </>
