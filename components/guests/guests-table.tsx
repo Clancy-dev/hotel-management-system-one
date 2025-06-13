@@ -4,98 +4,118 @@ import { useState, useEffect } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import {
-  MoreHorizontal,
-  Eye,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  Search,
-  Download,
-  Phone,
-  Mail,
-  Calendar,
-  User,
-  Loader2,
-  Edit,
-} from "lucide-react"
+import { MoreHorizontal, Eye, Edit, Trash2, ChevronLeft, ChevronRight, Search, Loader2, Grid3X3 } from "lucide-react"
 import { format } from "date-fns"
-import { checkOutGuest } from "@/actions/guest"
-import { toast } from "react-hot-toast"
-import { useCurrency } from "@/hooks/use-currency"
-import { useLanguage } from "@/hooks/use-language"
 import { GuestDetailsDialog } from "./guest-details-dialog"
 import { EditGuestDialog } from "./edit-guest-dialog"
+import { useMediaQuery } from "@/hooks/use-media-query"
+import { deleteGuest } from "@/actions/guest"
+import { toast } from "react-hot-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useRouter } from "next/navigation"
 
 interface Guest {
   id: string
   firstName: string
   lastName: string
-  gender: string
   nationality: string
+  gender: string
+  dateOfBirth?: Date | null
   phoneNumber: string
-  email?: string
-  bookings: Array<{
-    id: string
-    checkInDate: Date
-    checkOutDate: Date
-    numberOfGuests: number
-    purposeOfStay: string
-    room: {
-      roomNumber: string
-      category: {
-        name: string
-      }
-    }
-    payments: Array<{
-      totalBill: number
-      balanceRemaining: number
-      status: string
-    }>
-  }>
+  email?: string | null
+  address?: string | null
+  nextOfKin?: string | null
+  ninNumber?: string | null
+  passportNumber?: string | null
+  visaType?: string | null
+  visaNumber?: string | null
+  drivingPermit?: string | null
+  emergencyContact?: string | null
+  createdAt: Date
+  updatedAt: Date
+  bookings: any[]
 }
 
 interface GuestsTableProps {
   initialGuests: Guest[]
 }
 
+type SortField = "name" | "nationality" | "phoneNumber" | "checkInDate" | "checkOutDate" | "roomNumber"
+type SortDirection = "asc" | "desc"
+type ViewMode = "table" | "grid"
+
 export function GuestsTable({ initialGuests }: GuestsTableProps) {
-  const { formatPrice } = useCurrency()
-  const { t } = useLanguage()
+  const router = useRouter()
+  const isMobile = useMediaQuery("(max-width: 640px)")
 
   const [guests, setGuests] = useState<Guest[]>(initialGuests)
-  const [filteredGuests, setFilteredGuests] = useState<Guest[]>(guests)
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
-  const [guestToCheckout, setGuestToCheckout] = useState<Guest | null>(null)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const [rowsPerPage, setRowsPerPage] = useState(10)
   const [searchTerm, setSearchTerm] = useState("")
-  const [isCheckingOut, setIsCheckingOut] = useState(false)
+  const [filteredGuests, setFilteredGuests] = useState<Guest[]>([])
+  const [sortField, setSortField] = useState<SortField>("name")
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
+  const [rowsPerPage, setRowsPerPage] = useState(isMobile ? 5 : 10)
+  const [viewMode, setViewMode] = useState<ViewMode>(isMobile ? "grid" : "table")
+  const [isInitialized, setIsInitialized] = useState(false)
 
-  const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null)
-  const [isGuestDetailsOpen, setIsGuestDetailsOpen] = useState(false)
-  const [isEditGuestOpen, setIsEditGuestOpen] = useState(false)
-  const [guestToEdit, setGuestToEdit] = useState<Guest | null>(null)
+  // Load user preferences from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedViewMode = localStorage.getItem("guestsTableViewMode") as ViewMode | null
+      const savedRowsPerPage = localStorage.getItem("guestsTableRowsPerPage")
+      const savedSortField = localStorage.getItem("guestsTableSortField") as SortField | null
+      const savedSortDirection = localStorage.getItem("guestsTableSortDirection") as SortDirection | null
+
+      if (savedViewMode) setViewMode(savedViewMode)
+      if (savedRowsPerPage) setRowsPerPage(Number.parseInt(savedRowsPerPage))
+      if (savedSortField) setSortField(savedSortField)
+      if (savedSortDirection) setSortDirection(savedSortDirection)
+
+      setIsInitialized(true)
+    }
+  }, [])
+
+  // Update view mode based on screen size
+  useEffect(() => {
+    if (isMobile) {
+      setViewMode("grid")
+      if (rowsPerPage > 5) setRowsPerPage(5)
+    }
+  }, [isMobile, rowsPerPage])
+
+  // Save user preferences to localStorage
+  useEffect(() => {
+    if (isInitialized && typeof window !== "undefined") {
+      localStorage.setItem("guestsTableViewMode", viewMode)
+      localStorage.setItem("guestsTableRowsPerPage", rowsPerPage.toString())
+      localStorage.setItem("guestsTableSortField", sortField)
+      localStorage.setItem("guestsTableSortDirection", sortDirection)
+    }
+  }, [viewMode, rowsPerPage, sortField, sortDirection, isInitialized])
 
   // Update guests when initialGuests changes
   useEffect(() => {
-    setGuests(initialGuests)
+    if (initialGuests && initialGuests.length > 0) {
+      setGuests(initialGuests)
+    }
   }, [initialGuests])
 
-  // Filter and search logic
+  // Filter and sort guests
   useEffect(() => {
     let result = [...guests]
 
@@ -104,23 +124,110 @@ export function GuestsTable({ initialGuests }: GuestsTableProps) {
       const term = searchTerm.toLowerCase().trim()
       result = result.filter((guest) => {
         const fullName = `${guest.firstName} ${guest.lastName}`.toLowerCase()
-        const roomNumbers = guest.bookings
-          .map((b) => b.room.roomNumber)
-          .join(" ")
-          .toLowerCase()
         return (
           fullName.includes(term) ||
-          guest.phoneNumber.includes(term) ||
-          (guest.email && guest.email.toLowerCase().includes(term)) ||
           guest.nationality.toLowerCase().includes(term) ||
-          roomNumbers.includes(term)
+          guest.phoneNumber.includes(term) ||
+          (guest.email && guest.email.toLowerCase().includes(term))
         )
       })
     }
 
+    // Apply sorting
+    result = sortGuests(result, sortField, sortDirection)
+
     setFilteredGuests(result)
     setCurrentPage(1)
-  }, [searchTerm, guests])
+  }, [searchTerm, guests, sortField, sortDirection])
+
+  const sortGuests = (guestsToSort: Guest[], field: SortField, direction: SortDirection): Guest[] => {
+    return [...guestsToSort].sort((a, b) => {
+      let comparison = 0
+
+      switch (field) {
+        case "name":
+          const nameA = `${a.firstName} ${a.lastName}`
+          const nameB = `${b.firstName} ${b.lastName}`
+          comparison = nameA.localeCompare(nameB)
+          break
+        case "nationality":
+          comparison = a.nationality.localeCompare(b.nationality)
+          break
+        case "phoneNumber":
+          comparison = a.phoneNumber.localeCompare(b.phoneNumber)
+          break
+        case "checkInDate":
+          const checkInA = a.bookings[0]?.checkInDate ? new Date(a.bookings[0].checkInDate).getTime() : 0
+          const checkInB = b.bookings[0]?.checkInDate ? new Date(b.bookings[0].checkInDate).getTime() : 0
+          comparison = checkInA - checkInB
+          break
+        case "checkOutDate":
+          const checkOutA = a.bookings[0]?.checkOutDate ? new Date(a.bookings[0].checkOutDate).getTime() : 0
+          const checkOutB = b.bookings[0]?.checkOutDate ? new Date(b.bookings[0].checkOutDate).getTime() : 0
+          comparison = checkOutA - checkOutB
+          break
+        case "roomNumber":
+          const roomA = a.bookings[0]?.room?.roomNumber || ""
+          const roomB = b.bookings[0]?.room?.roomNumber || ""
+          comparison = roomA.localeCompare(roomB)
+          break
+      }
+
+      return direction === "asc" ? comparison : -comparison
+    })
+  }
+
+  const handleViewDetails = (guest: Guest) => {
+    setSelectedGuest(guest)
+    setIsDetailsOpen(true)
+  }
+
+  const handleEditGuest = (guest: Guest) => {
+    setSelectedGuest(guest)
+    setIsEditOpen(true)
+  }
+
+  const handleDeleteGuest = (guest: Guest) => {
+    setSelectedGuest(guest)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDeleteGuest = async () => {
+    if (!selectedGuest) return
+
+    setIsDeleting(true)
+    try {
+      const result = await deleteGuest(selectedGuest.id)
+      if (result.success) {
+        toast.success("Guest deleted successfully")
+        setGuests((prevGuests) => prevGuests.filter((g) => g.id !== selectedGuest.id))
+        setIsDeleteDialogOpen(false)
+        router.refresh()
+      } else {
+        toast.error(result.error || "Failed to delete guest")
+      }
+    } catch (error) {
+      console.error("Error deleting guest:", error)
+      toast.error("An error occurred while deleting the guest")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleGuestUpdated = (updatedGuest: Guest) => {
+    setGuests((prevGuests) =>
+      prevGuests.map((guest) =>
+        guest.id === updatedGuest.id
+          ? {
+              ...guest,
+              ...updatedGuest,
+              bookings: updatedGuest.bookings || guest.bookings,
+            }
+          : guest,
+      ),
+    )
+    router.refresh()
+  }
 
   // Pagination logic
   const indexOfLastGuest = currentPage * rowsPerPage
@@ -128,249 +235,233 @@ export function GuestsTable({ initialGuests }: GuestsTableProps) {
   const currentGuests = filteredGuests.slice(indexOfFirstGuest, indexOfLastGuest)
   const totalPages = Math.ceil(filteredGuests.length / rowsPerPage)
 
-  const handleViewDetails = (guest: Guest) => {
-    setSelectedGuest(guest)
-    setIsDetailsOpen(true)
+  // Grid Card Component
+  const GuestCard = ({ guest }: { guest: Guest }) => {
+    const activeBooking = guest.bookings && guest.bookings.length > 0 ? guest.bookings[0] : null
+
+    return (
+      <div className="bg-white border rounded-lg p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-lg">
+            {guest.firstName} {guest.lastName}
+          </h3>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreHorizontal className="h-4 w-4" />
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleViewDetails(guest)}>
+                <Eye className="mr-2 h-4 w-4" />
+                View Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEditGuest(guest)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Guest
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleDeleteGuest(guest)} className="text-red-600">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Guest
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Nationality:</span>
+            <span className="text-sm">{guest.nationality}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">Phone:</span>
+            <span className="text-sm">{guest.phoneNumber}</span>
+          </div>
+          {activeBooking && (
+            <>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Room:</span>
+                <span className="text-sm">{activeBooking.room?.roomNumber || "N/A"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Check-in:</span>
+                <span className="text-sm">
+                  {activeBooking.checkInDate ? format(new Date(activeBooking.checkInDate), "MMM d, yyyy") : "N/A"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Check-out:</span>
+                <span className="text-sm">
+                  {activeBooking.checkOutDate ? format(new Date(activeBooking.checkOutDate), "MMM d, yyyy") : "N/A"}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )
   }
 
-  const handleCheckout = (guest: Guest) => {
-    setGuestToCheckout(guest)
-    setIsCheckoutOpen(true)
-  }
-
-  const confirmCheckout = async () => {
-    if (!guestToCheckout || !guestToCheckout.bookings[0]) return
-
-    setIsCheckingOut(true)
-    try {
-      const result = await checkOutGuest(guestToCheckout.bookings[0].id)
-
-      if (result.success) {
-        toast.success("Guest checked out successfully!")
-        setGuests(guests.filter((g) => g.id !== guestToCheckout.id))
-        setIsCheckoutOpen(false)
-        setGuestToCheckout(null)
-      } else {
-        toast.error(result.error || "Failed to check out guest")
-      }
-    } catch (error) {
-      console.error("Checkout error:", error)
-      toast.error("Failed to check out guest")
-    } finally {
-      setIsCheckingOut(false)
-    }
-  }
-
-  const exportToCSV = () => {
-    const headers = [
-      "Name",
-      "Nationality",
-      "Phone",
-      "Email",
-      "Room",
-      "Category",
-      "Check-in",
-      "Check-out",
-      "Guests",
-      "Purpose",
-      "Total Bill",
-      "Balance",
-    ]
-    const csvData = filteredGuests.map((guest) => {
-      const booking = guest.bookings[0]
-      const payment = booking?.payments[0]
-      return [
-        `${guest.firstName} ${guest.lastName}`,
-        guest.nationality,
-        guest.phoneNumber,
-        guest.email || "N/A",
-        booking?.room.roomNumber || "N/A",
-        booking?.room.category.name || "N/A",
-        booking ? format(new Date(booking.checkInDate), "yyyy-MM-dd") : "N/A",
-        booking ? format(new Date(booking.checkOutDate), "yyyy-MM-dd") : "N/A",
-        booking?.numberOfGuests || "N/A",
-        booking?.purposeOfStay || "N/A",
-        payment ? formatPrice(payment.totalBill) : "N/A",
-        payment ? formatPrice(payment.balanceRemaining) : "N/A",
-      ]
-    })
-
-    const csvContent = [headers, ...csvData].map((row) => row.join(",")).join("\n")
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `current-guests-${format(new Date(), "yyyy-MM-dd")}.csv`
-    a.click()
-    window.URL.revokeObjectURL(url)
-  }
-
-  const handleViewGuestDetails = (guest: Guest) => {
-    setSelectedGuestId(guest.id)
-    setIsGuestDetailsOpen(true)
-  }
-
-  const handleEditGuest = (guest: Guest) => {
-    setGuestToEdit(guest)
-    setIsEditGuestOpen(true)
-  }
-
-  const handleGuestUpdated = () => {
-    // Refresh the guests list
-    window.location.reload()
-  }
-
-  const handleGuestDeleted = () => {
-    // Refresh the guests list
-    window.location.reload()
+  if (!isInitialized) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    )
   }
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full">
       {/* Search and Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-        <div className="relative flex-1 max-w-md">
+      <div className="space-y-4 mb-6">
+        {/* Search Bar */}
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search guests by name, phone, email, or room..."
+            placeholder="Search guests..."
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">{filteredGuests.length} guest(s) found</span>
-          <Button variant="outline" size="sm" onClick={exportToCSV}>
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
-        </div>
-      </div>
 
-      {/* Guests Table */}
-      <div className="border rounded-lg bg-white overflow-hidden">
-        <div className="overflow-x-auto">
-          <div className="min-w-[1000px]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[150px]">Guest Name</TableHead>
-                  <TableHead className="min-w-[100px]">Nationality</TableHead>
-                  <TableHead className="min-w-[120px]">Contact</TableHead>
-                  <TableHead className="min-w-[80px]">Room</TableHead>
-                  <TableHead className="min-w-[100px]">Category</TableHead>
-                  <TableHead className="min-w-[100px]">Check-in</TableHead>
-                  <TableHead className="min-w-[100px]">Check-out</TableHead>
-                  <TableHead className="min-w-[80px]">Guests</TableHead>
-                  <TableHead className="min-w-[100px]">Balance</TableHead>
-                  <TableHead className="w-20">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentGuests.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="h-24 text-center">
-                      {searchTerm.trim() !== ""
-                        ? `No guests found matching "${searchTerm}"`
-                        : "No current guests found"}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  currentGuests.map((guest) => {
-                    const booking = guest.bookings[0]
-                    const payment = booking?.payments[0]
-                    return (
-                      <TableRow key={guest.id}>
-                        <TableCell>
-                          <div className="font-medium">
-                            {guest.firstName} {guest.lastName}
-                          </div>
-                        </TableCell>
-                        <TableCell>{guest.nationality}</TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex items-center text-sm">
-                              <Phone className="h-3 w-3 mr-1" />
-                              {guest.phoneNumber}
-                            </div>
-                            {guest.email && (
-                              <div className="flex items-center text-sm text-muted-foreground">
-                                <Mail className="h-3 w-3 mr-1" />
-                                {guest.email}
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium">{booking?.room.roomNumber}</TableCell>
-                        <TableCell>{booking?.room.category.name}</TableCell>
-                        <TableCell>
-                          {booking && (
-                            <div className="text-sm">{format(new Date(booking.checkInDate), "MMM dd, yyyy")}</div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {booking && (
-                            <div className="text-sm">{format(new Date(booking.checkOutDate), "MMM dd, yyyy")}</div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{booking?.numberOfGuests || 0}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          {payment && (
-                            <div className="text-sm">
-                              {payment.balanceRemaining > 0 ? (
-                                <span className="text-orange-600 font-medium">
-                                  {formatPrice(payment.balanceRemaining)}
-                                </span>
-                              ) : (
-                                <span className="text-green-600">Paid</span>
-                              )}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Open menu</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewGuestDetails(guest)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Full Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEditGuest(guest)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Guest
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleViewDetails(guest)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Booking Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleCheckout(guest)}>
-                                <LogOut className="mr-2 h-4 w-4" />
-                                Check Out
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-              </TableBody>
-            </Table>
+        {/* Controls Row */}
+        <div className="flex flex-wrap gap-2 justify-between items-center">
+          <div className="flex gap-2">
+            {!isMobile && (
+              <div className="flex border rounded-md">
+                <Button
+                  variant={viewMode === "table" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("table")}
+                  className="rounded-r-none"
+                >
+                  <Table className="h-4 w-4 mr-1" />
+                  <span className="sr-only sm:not-sr-only sm:text-xs">Table</span>
+                </Button>
+                <Button
+                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("grid")}
+                  className="rounded-l-none"
+                >
+                  <Grid3X3 className="h-4 w-4 mr-1" />
+                  <span className="sr-only sm:not-sr-only sm:text-xs">Grid</span>
+                </Button>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              className="h-8 rounded-md border border-input bg-background px-3 text-xs"
+              value={rowsPerPage}
+              onChange={(e) => setRowsPerPage(Number(e.target.value))}
+            >
+              <option value="5">5 per page</option>
+              <option value="10">10 per page</option>
+              <option value="15">15 per page</option>
+              <option value="20">20 per page</option>
+            </select>
+            <span className="text-xs text-muted-foreground">{filteredGuests.length} guest(s)</span>
           </div>
         </div>
       </div>
 
-      {/* Pagination */}
+      {/* Content Area */}
+      {viewMode === "table" && !isMobile ? (
+        <div className="w-full overflow-hidden">
+          <div className="border rounded-lg bg-white">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[200px]">Guest Name</TableHead>
+                    <TableHead className="w-[120px]">Nationality</TableHead>
+                    <TableHead className="w-[120px]">Phone</TableHead>
+                    <TableHead className="w-[100px]">Room</TableHead>
+                    <TableHead className="w-[120px]">Check-in</TableHead>
+                    <TableHead className="w-[120px]">Check-out</TableHead>
+                    <TableHead className="w-[80px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {currentGuests.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-24 text-center">
+                        {searchTerm.trim() !== "" ? `No guests found matching "${searchTerm}"` : "No guests found"}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    currentGuests.map((guest) => {
+                      const activeBooking = guest.bookings && guest.bookings.length > 0 ? guest.bookings[0] : null
+                      return (
+                        <TableRow key={guest.id}>
+                          <TableCell className="font-medium">
+                            {guest.firstName} {guest.lastName}
+                          </TableCell>
+                          <TableCell>{guest.nationality}</TableCell>
+                          <TableCell>{guest.phoneNumber}</TableCell>
+                          <TableCell>{activeBooking?.room?.roomNumber || "N/A"}</TableCell>
+                          <TableCell>
+                            {activeBooking?.checkInDate
+                              ? format(new Date(activeBooking.checkInDate), "MMM d, yyyy")
+                              : "N/A"}
+                          </TableCell>
+                          <TableCell>
+                            {activeBooking?.checkOutDate
+                              ? format(new Date(activeBooking.checkOutDate), "MMM d, yyyy")
+                              : "N/A"}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Open menu</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewDetails(guest)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEditGuest(guest)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Guest
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeleteGuest(guest)} className="text-red-600">
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete Guest
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {currentGuests.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-muted-foreground">
+              {searchTerm.trim() !== "" ? `No guests found matching "${searchTerm}"` : "No guests found"}
+            </div>
+          ) : (
+            currentGuests.map((guest) => <GuestCard key={guest.id} guest={guest} />)
+          )}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
       {filteredGuests.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-muted-foreground order-2 sm:order-1">
+        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
+          <div className="text-xs text-muted-foreground order-2 sm:order-1">
             Showing {indexOfFirstGuest + 1}-{Math.min(indexOfLastGuest, filteredGuests.length)} of{" "}
             {filteredGuests.length} guests
           </div>
@@ -380,196 +471,72 @@ export function GuestsTable({ initialGuests }: GuestsTableProps) {
               size="sm"
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
+              className="h-8 px-2"
             >
               <ChevronLeft className="h-4 w-4" />
-              Previous
+              <span className="sr-only sm:not-sr-only sm:ml-1 text-xs">Previous</span>
             </Button>
-            <span className="text-sm px-2">
-              Page {currentPage} of {totalPages || 1}
+            <span className="text-xs px-2">
+              {currentPage} / {totalPages || 1}
             </span>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages || totalPages === 0}
+              className="h-8 px-2"
             >
-              Next
+              <span className="sr-only sm:not-sr-only sm:mr-1 text-xs">Next</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       )}
 
-      {/* Guest Details Dialog */}
-      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="sm:max-w-[700px] max-w-[95vw] max-h-[95vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle>Guest Details</DialogTitle>
-            <DialogDescription>Complete information about the guest and their booking</DialogDescription>
-          </DialogHeader>
-          {selectedGuest && (
-            <div className="flex-1 overflow-y-auto px-1">
-              <div className="space-y-6">
-                {/* Personal Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center">
-                      <User className="h-5 w-5 mr-2" />
-                      Personal Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Full Name</label>
-                      <p className="font-medium">
-                        {selectedGuest.firstName} {selectedGuest.lastName}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Nationality</label>
-                      <p>{selectedGuest.nationality}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Phone Number</label>
-                      <p>{selectedGuest.phoneNumber}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Email</label>
-                      <p>{selectedGuest.email || "Not provided"}</p>
-                    </div>
-                  </CardContent>
-                </Card>
+      {/* Dialogs */}
+      <GuestDetailsDialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen} guestId={selectedGuest?.id || null} />
+      <EditGuestDialog
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        guest={selectedGuest}
+        onGuestUpdated={(updatedGuest) => {
+          // Ensure the updated guest has the required properties
+          const completeGuest = {
+            ...updatedGuest,
+            bookings: selectedGuest?.bookings || [],
+          }
+          handleGuestUpdated(completeGuest)
+        }}
+      />
 
-                {/* Booking Information */}
-                {selectedGuest.bookings.map((booking, index) => (
-                  <Card key={booking.id}>
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center">
-                        <Calendar className="h-5 w-5 mr-2" />
-                        Booking Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Room</label>
-                        <p className="font-medium">
-                          {booking.room.roomNumber} ({booking.room.category.name})
-                        </p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Number of Guests</label>
-                        <p>{booking.numberOfGuests}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Check-in Date</label>
-                        <p>{format(new Date(booking.checkInDate), "PPP")}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Check-out Date</label>
-                        <p>{format(new Date(booking.checkOutDate), "PPP")}</p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="text-sm font-medium text-muted-foreground">Purpose of Stay</label>
-                        <p className="capitalize">{booking.purposeOfStay.replace("_", " ")}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-
-                {/* Payment Information */}
-                {selectedGuest.bookings[0]?.payments.map((payment, index) => (
-                  <Card key={index}>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Payment Information</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Total Bill</label>
-                        <p className="font-medium">{formatPrice(payment.totalBill)}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Balance Remaining</label>
-                        <p
-                          className={`font-medium ${
-                            payment.balanceRemaining > 0 ? "text-orange-600" : "text-green-600"
-                          }`}
-                        >
-                          {payment.balanceRemaining > 0 ? formatPrice(payment.balanceRemaining) : "Fully Paid"}
-                        </p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="text-sm font-medium text-muted-foreground">Payment Status</label>
-                        <Badge
-                          variant={
-                            payment.status === "completed"
-                              ? "default"
-                              : payment.status === "partial"
-                                ? "secondary"
-                                : "destructive"
-                          }
-                          className="ml-2"
-                        >
-                          {payment.status}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Checkout Confirmation Dialog */}
-      <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-        <DialogContent className="sm:max-w-[425px] max-w-[95vw]">
-          <DialogHeader>
-            <DialogTitle>Confirm Check-out</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to check out{" "}
-              {guestToCheckout && `${guestToCheckout.firstName} ${guestToCheckout.lastName}`}?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              This action will mark the guest as checked out and change the room status to "Dirty" for cleaning.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCheckoutOpen(false)} disabled={isCheckingOut}>
-              Cancel
-            </Button>
-            <Button onClick={confirmCheckout} disabled={isCheckingOut}>
-              {isCheckingOut ? (
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this guest?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the guest record and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteGuest}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Checking out...
+                  Deleting...
                 </>
               ) : (
-                "Confirm Check-out"
+                "Delete"
               )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Guest Details Dialog */}
-      <GuestDetailsDialog
-        open={isGuestDetailsOpen}
-        onOpenChange={setIsGuestDetailsOpen}
-        guestId={selectedGuestId}
-        onGuestDeleted={handleGuestDeleted}
-        onGuestUpdated={handleGuestUpdated}
-      />
-
-      {/* Edit Guest Dialog */}
-      <EditGuestDialog
-        open={isEditGuestOpen}
-        onOpenChange={setIsEditGuestOpen}
-        guest={guestToEdit}
-        onGuestUpdated={handleGuestUpdated}
-      />
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

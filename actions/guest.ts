@@ -2,92 +2,28 @@
 
 import { db } from "@/prisma/db"
 import { revalidatePath } from "next/cache"
+import { v4 as uuidv4 } from "uuid"
 
-interface CreateGuestInput {
-  firstName: string
-  lastName: string
-  nationality: string
-  gender: string
-  dateOfBirth?: Date
-  phoneNumber: string
-  email?: string
-  address?: string
-  nextOfKin?: string
-  ninNumber?: string
-  passportNumber?: string
-  visaType?: string
-  visaNumber?: string
-  drivingPermit?: string
-  emergencyContact?: string
-}
-
-interface CreateBookingInput {
-  roomId: string
-  guestId: string
-  checkInDate: Date
-  checkOutDate: Date
-  duration: number
-  numberOfGuests: number
-  purposeOfStay: string
-  purposeDetails?: string
-  vehicleRegistration?: string
-  vehicleType?: string
-  parkingRequired?: boolean
-  company?: string
-  additionalGuestIds?: string[]
-}
-
-// Create guest
-export async function createGuest(data: CreateGuestInput) {
-  try {
-    const guest = await db.guest.create({
-      data,
-    })
-
-    return { success: true, data: guest }
-  } catch (error) {
-    console.error("Failed to create guest:", error)
-    return { success: false, error: "Failed to create guest" }
-  }
-}
-
-// Get all guests
-export async function getGuests() {
-  try {
-    const guests = await db.guest.findMany({
-      include: {
-        bookings: {
-          include: {
-            room: true,
-          },
-          orderBy: { createdAt: "desc" },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    })
-
-    return { success: true, data: guests }
-  } catch (error) {
-    console.error("Failed to get guests:", error)
-    return { success: false, error: "Failed to get guests" }
-  }
-}
-
-// Get current guests (with active bookings)
 export async function getCurrentGuests() {
   try {
     const guests = await db.guest.findMany({
       where: {
         bookings: {
           some: {
-            status: "active",
+            checkOutDate: {
+              gte: new Date(),
+            },
+            isActive: true,
           },
         },
       },
       include: {
         bookings: {
           where: {
-            status: "active",
+            isActive: true,
+            checkOutDate: {
+              gte: new Date(),
+            },
           },
           include: {
             room: {
@@ -99,32 +35,29 @@ export async function getCurrentGuests() {
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {
+        createdAt: "desc",
+      },
     })
 
-    return { success: true, data: guests }
+    return {
+      success: true,
+      data: guests,
+    }
   } catch (error) {
-    console.error("Failed to get current guests:", error)
-    return { success: false, error: "Failed to get current guests" }
+    console.error("Error fetching current guests:", error)
+    return {
+      success: false,
+      error: "Failed to fetch current guests",
+    }
   }
 }
 
-// Get guest history (checked out guests)
 export async function getGuestHistory() {
   try {
     const guests = await db.guest.findMany({
-      where: {
-        bookings: {
-          some: {
-            status: "checked_out",
-          },
-        },
-      },
       include: {
         bookings: {
-          where: {
-            status: "checked_out",
-          },
           include: {
             room: {
               include: {
@@ -133,46 +66,185 @@ export async function getGuestHistory() {
             },
             payments: true,
           },
-          orderBy: { actualCheckOut: "desc" },
         },
       },
-      orderBy: { createdAt: "desc" },
-    })
-
-    return { success: true, data: guests }
-  } catch (error) {
-    console.error("Failed to get guest history:", error)
-    return { success: false, error: "Failed to get guest history" }
-  }
-}
-
-async function updateRoomStatus(
-  roomId: string,
-  statusId: string,
-  notes: string,
-  changedBy: string,
-  bookingId?: string,
-) {
-  try {
-    await db.roomStatusHistory.create({
-      data: {
-        roomId,
-        statusId,
-        notes,
-        changedBy,
-        bookingId,
+      orderBy: {
+        createdAt: "desc",
       },
     })
+
+    return {
+      success: true,
+      data: guests,
+    }
   } catch (error) {
-    console.error("Failed to update room status:", error)
+    console.error("Error fetching guest history:", error)
+    return {
+      success: false,
+      error: "Failed to fetch guest history",
+    }
   }
 }
 
-// Create booking
-export async function createBooking(data: CreateBookingInput) {
+export async function getGuestById(id: string) {
+  try {
+    const guest = await db.guest.findUnique({
+      where: { id },
+      include: {
+        bookings: {
+          include: {
+            room: {
+              include: {
+                category: true,
+              },
+            },
+            payments: true,
+          },
+        },
+      },
+    })
+
+    if (!guest) {
+      return {
+        success: false,
+        error: "Guest not found",
+      }
+    }
+
+    return {
+      success: true,
+      data: guest,
+    }
+  } catch (error) {
+    console.error("Error fetching guest:", error)
+    return {
+      success: false,
+      error: "Failed to fetch guest",
+    }
+  }
+}
+
+export async function createGuest(data: any) {
+  try {
+    const guest = await db.guest.create({
+      data: {
+        id: uuidv4(),
+        firstName: data.firstName,
+        lastName: data.lastName,
+        nationality: data.nationality,
+        gender: data.gender,
+        dateOfBirth: data.dateOfBirth,
+        phoneNumber: data.phoneNumber,
+        email: data.email,
+        address: data.address,
+        nextOfKin: data.nextOfKin,
+        ninNumber: data.ninNumber,
+        passportNumber: data.passportNumber,
+        visaType: data.visaType,
+        visaNumber: data.visaNumber,
+        drivingPermit: data.drivingPermit,
+        emergencyContact: data.emergencyContact,
+      },
+    })
+
+    revalidatePath("/guests")
+    return {
+      success: true,
+      data: guest,
+    }
+  } catch (error) {
+    console.error("Error creating guest:", error)
+    return {
+      success: false,
+      error: "Failed to create guest",
+    }
+  }
+}
+
+export async function updateGuest(id: string, data: any) {
+  try {
+    const guest = await db.guest.update({
+      where: { id },
+      data: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        nationality: data.nationality,
+        gender: data.gender,
+        dateOfBirth: data.dateOfBirth,
+        phoneNumber: data.phoneNumber,
+        email: data.email,
+        address: data.address,
+        nextOfKin: data.nextOfKin,
+        ninNumber: data.ninNumber,
+        passportNumber: data.passportNumber,
+        visaType: data.visaType,
+        visaNumber: data.visaNumber,
+        drivingPermit: data.drivingPermit,
+        emergencyContact: data.emergencyContact,
+      },
+    })
+
+    revalidatePath("/guests")
+    return {
+      success: true,
+      data: guest,
+    }
+  } catch (error) {
+    console.error("Error updating guest:", error)
+    return {
+      success: false,
+      error: "Failed to update guest",
+    }
+  }
+}
+
+export async function deleteGuest(id: string) {
+  try {
+    // Check if guest has active bookings
+    const guest = await db.guest.findUnique({
+      where: { id },
+      include: {
+        bookings: {
+          where: {
+            isActive: true,
+            checkOutDate: {
+              gte: new Date(),
+            },
+          },
+        },
+      },
+    })
+
+    if (guest?.bookings && guest.bookings.length > 0) {
+      return {
+        success: false,
+        error: "Cannot delete guest with active bookings",
+      }
+    }
+
+    // Delete guest
+    await db.guest.delete({
+      where: { id },
+    })
+
+    revalidatePath("/guests")
+    return {
+      success: true,
+    }
+  } catch (error) {
+    console.error("Error deleting guest:", error)
+    return {
+      success: false,
+      error: "Failed to delete guest",
+    }
+  }
+}
+
+export async function createBooking(data: any) {
   try {
     const booking = await db.booking.create({
       data: {
+        id: uuidv4(),
         roomId: data.roomId,
         guestId: data.guestId,
         checkInDate: data.checkInDate,
@@ -183,83 +255,27 @@ export async function createBooking(data: CreateBookingInput) {
         purposeDetails: data.purposeDetails,
         vehicleRegistration: data.vehicleRegistration,
         vehicleType: data.vehicleType,
-        parkingRequired: data.parkingRequired || false,
+        parkingRequired: data.parkingRequired,
         company: data.company,
+        isActive: true,
       },
     })
 
-    // Add additional guests if provided
-    if (data.additionalGuestIds && data.additionalGuestIds.length > 0) {
-      await Promise.all(
-        data.additionalGuestIds.map((guestId) =>
-          db.additionalGuest.create({
-            data: {
-              bookingId: booking.id,
-              guestId,
-            },
-          }),
-        ),
-      )
-    }
-
-    // Update room status to "Booked"
-    const bookedStatus = await db.roomStatus.findFirst({
-      where: { name: "Booked" },
-    })
-
-    if (bookedStatus) {
-      await updateRoomStatus(data.roomId, bookedStatus.id, "Room booked", "system", booking.id)
-    }
-
-    revalidatePath("/room-status")
     revalidatePath("/guests")
-    return { success: true, data: booking }
+    revalidatePath("/room-status")
+    return {
+      success: true,
+      data: booking,
+    }
   } catch (error) {
-    console.error("Failed to create booking:", error)
-    return { success: false, error: "Failed to create booking" }
+    console.error("Error creating booking:", error)
+    return {
+      success: false,
+      error: "Failed to create booking",
+    }
   }
 }
 
-// Check out guest
-export async function checkOutGuest(bookingId: string) {
-  try {
-    const booking = await db.booking.findUnique({
-      where: { id: bookingId },
-      include: { room: true },
-    })
-
-    if (!booking) {
-      return { success: false, error: "Booking not found" }
-    }
-
-    // Update booking status
-    await db.booking.update({
-      where: { id: bookingId },
-      data: {
-        status: "checked_out",
-        actualCheckOut: new Date(),
-      },
-    })
-
-    // Update room status to "Dirty" (needs cleaning)
-    const dirtyStatus = await db.roomStatus.findFirst({
-      where: { name: "Dirty" },
-    })
-
-    if (dirtyStatus) {
-      await updateRoomStatus(booking.roomId, dirtyStatus.id, "Guest checked out", "system")
-    }
-
-    revalidatePath("/room-status")
-    revalidatePath("/guests")
-    return { success: true }
-  } catch (error) {
-    console.error("Failed to check out guest:", error)
-    return { success: false, error: "Failed to check out guest" }
-  }
-}
-
-// Search guests
 export async function searchGuests(query: string) {
   try {
     const guests = await db.guest.findMany({
@@ -267,10 +283,10 @@ export async function searchGuests(query: string) {
         OR: [
           { firstName: { contains: query, mode: "insensitive" } },
           { lastName: { contains: query, mode: "insensitive" } },
-          { phoneNumber: { contains: query, mode: "insensitive" } },
+          { phoneNumber: { contains: query } },
           { email: { contains: query, mode: "insensitive" } },
-          { ninNumber: { contains: query, mode: "insensitive" } },
-          { passportNumber: { contains: query, mode: "insensitive" } },
+          { ninNumber: { contains: query } },
+          { passportNumber: { contains: query } },
         ],
       },
       include: {
@@ -281,17 +297,23 @@ export async function searchGuests(query: string) {
                 category: true,
               },
             },
-            payments: true,
           },
-          orderBy: { createdAt: "desc" },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {
+        createdAt: "desc",
+      },
     })
 
-    return { success: true, data: guests }
+    return {
+      success: true,
+      data: guests,
+    }
   } catch (error) {
-    console.error("Failed to search guests:", error)
-    return { success: false, error: "Failed to search guests" }
+    console.error("Error searching guests:", error)
+    return {
+      success: false,
+      error: "Failed to search guests",
+    }
   }
 }

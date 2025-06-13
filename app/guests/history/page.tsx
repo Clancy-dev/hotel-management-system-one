@@ -1,31 +1,62 @@
-import { getGuestHistory } from "@/actions/guest"
+import { Suspense } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { GuestHistoryTable } from "@/components/guests/guest-history-table"
+import { getGuestHistory } from "@/actions/guest"
+import { Skeleton } from "@/components/ui/skeleton"
 
-export default async function GuestHistoryPage() {
-  const historyResult = await getGuestHistory()
-  const guestHistory = Array.isArray(historyResult?.data) && historyResult.success ? historyResult.data : []
+export const metadata = {
+  title: "Guest History | Hotel Management",
+  description: "View and manage guest history",
+}
+
+async function GuestHistoryContent() {
+  const guestHistoryResult = await getGuestHistory()
+  const guests = guestHistoryResult.success && Array.isArray(guestHistoryResult.data)
+    ? guestHistoryResult.data.map((guest: any) => ({
+        ...guest,
+        email: guest.email === null ? undefined : guest.email,
+      }))
+    : []
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 md:p-8 lg:p-10 xl:p-12">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div className="text-center md:text-left">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Guest History</h1>
-          <p className="text-muted-foreground">View all past guests who have checked out</p>
-        </div>
-      </div>
-
+    <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Past Guests</CardTitle>
-          <CardDescription>
-            Complete history of guests who have stayed at the hotel. Search, filter, and print guest records.
-          </CardDescription>
+          <CardTitle>Guest History</CardTitle>
+          <CardDescription>View and search past guest stays and their booking history.</CardDescription>
         </CardHeader>
         <CardContent>
-          <GuestHistoryTable initialGuestHistory={guestHistory} />
+          <GuestHistoryTable guests={guests} />
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function GuestHistoryPage() {
+  return (
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Guest History</h1>
+      </div>
+
+      <Suspense fallback={<GuestHistoryLoadingSkeleton />}>
+        <GuestHistoryContent />
+      </Suspense>
+    </div>
+  )
+}
+
+function GuestHistoryLoadingSkeleton() {
+  return (
+    <Card>
+      <CardHeader>
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-4 w-full mt-2" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-[500px] w-full" />
+      </CardContent>
+    </Card>
   )
 }

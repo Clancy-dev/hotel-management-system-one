@@ -1,6 +1,9 @@
 import { getCurrentGuests } from "@/actions/guest"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { GuestsTable } from "@/components/guests/guests-table"
+import { Button } from "@/components/ui/button"
+import { PlusCircle } from "lucide-react"
+import Link from "next/link"
 
 export default async function GuestsPage() {
   const guestsResult = await getCurrentGuests()
@@ -12,6 +15,14 @@ export default async function GuestsPage() {
         <div className="text-center md:text-left">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Current Guests</h1>
           <p className="text-muted-foreground">Manage guests currently staying at the hotel</p>
+        </div>
+        <div className="w-full md:w-auto">
+          <Link href="/guests/add">
+            <Button className="w-full md:w-auto">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add New Guest
+            </Button>
+          </Link>
         </div>
       </div>
 

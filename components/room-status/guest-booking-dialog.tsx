@@ -262,10 +262,14 @@ export function GuestBookingDialog({ open, onOpenChange, room, onBookingCreated 
       setCurrentStep(1)
       onOpenChange(false)
 
-      if (onBookingCreated) {
+      if (onBookingCreated && bookedStatus.success) {
         onBookingCreated({
           ...room,
-          currentStatus: { id: "booked", name: "Booked", color: "#ef4444" },
+          currentStatus: {
+            id: "booked", // Use the actual ID from bookedStatus if available
+            name: "Booked",
+            color: "#ef4444",
+          },
         })
       }
     } catch (error) {

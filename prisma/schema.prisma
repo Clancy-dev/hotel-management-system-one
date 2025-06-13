@@ -140,6 +140,7 @@ model Booking {
   
   // Status
   status          String   @default("active") // "active", "checked_out", "cancelled"
+  isActive        Boolean  @default(true)
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
