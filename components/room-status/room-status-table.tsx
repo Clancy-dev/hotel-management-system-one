@@ -245,6 +245,22 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
     }
   }
 
+  const handleRoomStatusUpdated = (updatedRoom: Room) => {
+    // Ensure currentStatus has all required properties
+    let fixedStatus: RoomStatus | undefined = undefined
+    if (updatedRoom.currentStatus) {
+      // Try to find the full status object from roomStatuses by id
+      fixedStatus = roomStatuses.find((status) => status.id === updatedRoom.currentStatus?.id)
+        // fallback to the provided status if not found, but add isDefault as false
+        ?? { ...updatedRoom.currentStatus, isDefault: false }
+    }
+    setRooms((prevRooms) =>
+      prevRooms.map((room) =>
+        room.id === updatedRoom.id ? { ...room, currentStatus: fixedStatus } : room,
+      ),
+    )
+  }
+
   const resetFilters = () => {
     setSearchTerm("")
     setStatusFilter("all")
@@ -578,31 +594,21 @@ export function RoomStatusTable({ initialRooms, roomStatuses, roomCategories }: 
         onOpenChange={setIsUpdateStatusOpen}
         room={selectedRoom}
         roomStatuses={roomStatuses}
-        onStatusUpdated={(updatedRoom) => {
-          if (updatedRoom && typeof updatedRoom === "object" && "id" in updatedRoom) {
-            // Update the room in the local state
-            setRooms((prevRooms) =>
-              prevRooms.map((room) =>
-                room.id === updatedRoom.id ? { ...room, currentStatus: (updatedRoom as Room).currentStatus } : room,
-              ),
-            )
-          }
-        }}
+        onStatusUpdated={handleRoomStatusUpdated}
       />
 
       <GuestBookingDialog
         open={isBookingOpen}
         onOpenChange={setIsBookingOpen}
         room={selectedRoom}
-        onBookingCreated={(updatedRoom) => {
-          if (updatedRoom && typeof updatedRoom === "object" && "id" in updatedRoom) {
-            // Update the room in the local state
-            setRooms((prevRooms) =>
-              prevRooms.map((room) =>
-                room.id === updatedRoom.id ? { ...room, currentStatus: (updatedRoom as Room).currentStatus } : room,
-              ),
-            )
+        onBookingCreated={(room) => {
+          // Ensure currentStatus has all required properties
+          let fixedStatus: RoomStatus | undefined = undefined
+          if (room.currentStatus) {
+            fixedStatus = roomStatuses.find((status) => status.id === room.currentStatus?.id)
+              ?? { ...room.currentStatus, isDefault: false }
           }
+          handleRoomStatusUpdated({ ...room, currentStatus: fixedStatus })
         }}
       />
 

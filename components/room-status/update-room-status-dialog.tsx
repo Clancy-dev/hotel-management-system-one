@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import {
   Dialog,
@@ -82,15 +82,13 @@ export function UpdateRoomStatusDialog({
 
   const watchedValues = watch()
 
-  // Reset form when room changes
-  
-
+  // Reset form when room changes or dialog opens
   useEffect(() => {
-    if (room) {
+    if (room && open) {
       setValue("statusId", room.currentStatus?.id || "")
       setValue("notes", "")
     }
-  }, [room, setValue])
+  }, [room, open, setValue])
 
   const selectedStatus = roomStatuses.find((status) => status.id === watchedValues.statusId)
   const requiresNotes = selectedStatus?.name === "Maintenance" || selectedStatus?.name === "Out of Order"
@@ -109,16 +107,23 @@ export function UpdateRoomStatusDialog({
 
       if (result.success) {
         toast.success("Room status updated successfully!")
+
+        // Find the new status object
+        const newStatus = roomStatuses.find((s) => s.id === data.statusId)
+
+        // Create updated room object with the new status
+        const updatedRoom = {
+          ...room,
+          currentStatus: newStatus,
+        }
+
+        // Call the callback with the updated room
+        if (onStatusUpdated) {
+          onStatusUpdated(updatedRoom)
+        }
+
         reset()
         onOpenChange(false)
-
-        if (onStatusUpdated) {
-          const newStatus = roomStatuses.find((s) => s.id === data.statusId)
-          onStatusUpdated({
-            ...room,
-            currentStatus: newStatus,
-          })
-        }
       } else {
         toast.error(result.error || "Failed to update room status")
       }

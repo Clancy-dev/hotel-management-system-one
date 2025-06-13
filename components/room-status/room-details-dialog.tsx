@@ -1,14 +1,14 @@
 "use client"
 
+import { useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { format } from "date-fns"
-import { ImageIcon, Calendar } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { useCurrency } from "@/hooks/use-currency"
-import { useState } from "react"
+import { ImageIcon, Calendar, Clock, User, FileText } from "lucide-react"
 import { ImageGallery } from "../rooms/image-gallery"
-
 
 interface RoomStatus {
   id: string
@@ -35,11 +35,34 @@ interface Room {
   currentStatus?: RoomStatus
 }
 
+interface StatusHistoryItem {
+  id: string
+  roomId: string
+  statusId: string
+  previousStatusId?: string
+  notes?: string
+  changedBy?: string
+  changedAt: Date
+  bookingId?: string
+  room: Room
+  status: RoomStatus
+  previousStatus?: RoomStatus
+  booking?: {
+    id: string
+    guestId: string
+    guest: {
+      id: string
+      firstName: string
+      lastName: string
+    }
+  }
+}
+
 interface RoomDetailsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   room: Room | null
-  statusHistory: any[]
+  statusHistory: StatusHistoryItem[]
 }
 
 export function RoomDetailsDialog({ open, onOpenChange, room, statusHistory }: RoomDetailsDialogProps) {
@@ -48,135 +71,168 @@ export function RoomDetailsDialog({ open, onOpenChange, room, statusHistory }: R
 
   if (!room) return null
 
+  const formatDate = (date: Date | string) => {
+    return new Date(date).toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[700px] max-w-[95vw] max-h-[90vh] flex flex-col">
+        <DialogContent className="sm:max-w-[700px] max-w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Room {room.roomNumber} Details</DialogTitle>
-            <DialogDescription>
-              {room.category?.name} - {formatPrice(room.price)}
-            </DialogDescription>
+            <DialogDescription>View detailed information about this room and its status history.</DialogDescription>
           </DialogHeader>
 
-          <Tabs defaultValue="details" className="flex-1 overflow-hidden flex flex-col">
+          <Tabs defaultValue="details" className="mt-4">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="details">Room Details</TabsTrigger>
               <TabsTrigger value="history">Status History</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="details" className="flex-1 overflow-y-auto">
-              <div className="space-y-6">
-                {/* Room Images */}
-                <div
-                  className="aspect-video w-full overflow-hidden rounded-md bg-muted cursor-pointer"
-                  onClick={() => setIsGalleryOpen(true)}
-                >
-                  {room.images && room.images.length > 0 ? (
+            <TabsContent value="details" className="mt-4 space-y-4">
+              {/* Room Images */}
+              <div className="aspect-video w-full overflow-hidden rounded-md bg-muted relative group">
+                {room.images && room.images.length > 0 ? (
+                  <>
                     <img
                       src={room.images[0] || "/placeholder.svg"}
                       alt={`Room ${room.roomNumber}`}
                       className="w-full h-full object-cover"
                     />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Room Status */}
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">Current Status</h3>
-                  {room.currentStatus ? (
-                    <Badge
+                    <Button
                       variant="secondary"
-                      className="text-white"
-                      style={{ backgroundColor: room.currentStatus.color }}
+                      size="sm"
+                      className="absolute bottom-2 right-2 opacity-80 hover:opacity-100"
+                      onClick={() => setIsGalleryOpen(true)}
                     >
-                      {room.currentStatus.name}
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">No Status</Badge>
-                  )}
-                </div>
+                      View All Images ({room.images.length})
+                    </Button>
+                  </>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageIcon className="h-16 w-16 text-muted-foreground" />
+                    <p className="text-muted-foreground mt-2">No images available</p>
+                  </div>
+                )}
+              </div>
 
-                {/* Room Details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Room Number</h3>
-                    <p className="font-medium">{room.roomNumber}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Category</h3>
-                    <p>{room.category?.name || "Unknown Category"}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Price</h3>
-                    <p className="font-medium">{formatPrice(room.price)}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Created At</h3>
-                    <p className="font-mono">{format(new Date(room.createdAt), "PPP")}</p>
-                  </div>
-                </div>
+              {/* Room Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Room Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Room Number:</span>
+                      <span className="font-medium">{room.roomNumber}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Category:</span>
+                      <span className="font-medium">{room.category?.name || "Unknown"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Price:</span>
+                      <span className="font-medium">{formatPrice(room.price)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Current Status:</span>
+                      {room.currentStatus ? (
+                        <Badge style={{ backgroundColor: room.currentStatus.color }} className="text-white">
+                          {room.currentStatus.name}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">No Status</Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
 
-                {/* Room Description */}
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
-                  {room.description ? (
-                    <div className="bg-muted p-3 rounded-md whitespace-pre-wrap text-sm">{room.description}</div>
-                  ) : (
-                    <p className="text-muted-foreground">No description provided</p>
-                  )}
-                </div>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Description</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm">{room.description || "No description available."}</p>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
 
-            <TabsContent value="history" className="flex-1 overflow-y-auto">
-              {statusHistory.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <Calendar className="h-12 w-12 mb-4 opacity-50" />
-                  <p>No status history available for this room</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {statusHistory.map((item: any) => (
-                    <div key={item.id} className="border rounded-md p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <Badge
-                          variant="secondary"
-                          className="text-white"
-                          style={{ backgroundColor: item.status?.color || "#888888" }}
-                        >
-                          {item.status?.name || "Unknown Status"}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">
-                          {format(new Date(item.changedAt), "PPP p")}
-                        </span>
-                      </div>
-                      <div className="text-sm">
-                        <p>
-                          <span className="text-muted-foreground">Changed by: </span>
-                          {item.changedBy || "System"}
-                        </p>
-                        {item.booking && (
-                          <p>
-                            <span className="text-muted-foreground">Guest: </span>
-                            {item.booking.guest.firstName} {item.booking.guest.lastName}
-                          </p>
-                        )}
-                        {item.notes && (
-                          <div className="mt-2">
-                            <p className="text-muted-foreground mb-1">Notes:</p>
-                            <p className="italic bg-muted p-2 rounded-md">{item.notes}</p>
+            <TabsContent value="history" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Status History</CardTitle>
+                  <CardDescription>Recent status changes for this room</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {statusHistory.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-4">No status history available</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {statusHistory.map((item) => (
+                        <div key={item.id} className="border rounded-lg p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge style={{ backgroundColor: item.status.color }} className="text-white">
+                                {item.status.name}
+                              </Badge>
+                              {item.previousStatus && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-muted-foreground">from</span>
+                                  <Badge
+                                    variant="outline"
+                                    style={{ color: item.previousStatus.color, borderColor: item.previousStatus.color }}
+                                  >
+                                    {item.previousStatus.name}
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatDate(item.changedAt)}
+                            </div>
                           </div>
-                        )}
-                      </div>
+
+                          {item.booking && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span>
+                                Booking by{" "}
+                                <span className="font-medium">
+                                  {item.booking.guest.firstName} {item.booking.guest.lastName}
+                                </span>
+                              </span>
+                            </div>
+                          )}
+
+                          {item.changedBy && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <span>Changed by {item.changedBy}</span>
+                            </div>
+                          )}
+
+                          {item.notes && (
+                            <div className="flex gap-2 text-sm">
+                              <FileText className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <p className="text-muted-foreground">{item.notes}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </DialogContent>
