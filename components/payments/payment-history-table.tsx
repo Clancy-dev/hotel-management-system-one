@@ -31,25 +31,25 @@ import { useLanguage } from "@/hooks/use-language"
 import { PaymentDetailsDialog } from "./payment-details-dialog"
 import { EditPaymentDialog } from "./edit-payment-dialog"
 
-interface Payment {
+export interface Payment {
   id: string
   amount: number
   paymentMode: string
-  receiptNumber?: string
-  depositPaid?: number
+  receiptNumber?: string | null
+  depositPaid?: number | null
   roomRate: number
-  discountType?: string
-  discountAmount?: number
+  discountType?: string | null
+  discountAmount?: number | null
   totalBill: number
   balanceRemaining: number
   status: string
-  mobileMoneyProvider?: string
-  mobileMoneyNumber?: string
-  paymentDate: Date
+  mobileMoneyProvider?: string | null
+  mobileMoneyNumber?: string | null
+  paymentDate: Date | string
   booking: {
     id: string
-    checkInDate: Date
-    checkOutDate: Date
+    checkInDate: Date | string
+    checkOutDate: Date | string
     guest: {
       firstName: string
       lastName: string
@@ -59,9 +59,11 @@ interface Payment {
       roomNumber: string
       category: {
         name: string
-      }
+      } | null
     }
   }
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 interface PaymentHistoryTableProps {
@@ -260,7 +262,7 @@ export function PaymentHistoryTable({ initialPayments }: PaymentHistoryTableProp
             </div>
             <div class="row">
               <span>Room:</span>
-              <span>${selectedPayment.booking.room.roomNumber} (${selectedPayment.booking.room.category.name})</span>
+              <span>${selectedPayment.booking.room.roomNumber} (${selectedPayment.booking.room.category?.name || "Standard"})</span>
             </div>
           </div>
 
@@ -742,7 +744,8 @@ export function PaymentHistoryTable({ initialPayments }: PaymentHistoryTableProp
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Room</label>
                       <p className="font-medium">
-                        {selectedPayment.booking.room.roomNumber} ({selectedPayment.booking.room.category.name})
+                        {selectedPayment.booking.room.roomNumber} (
+                        {selectedPayment.booking.room.category?.name || "Standard"})
                       </p>
                     </div>
                     <div>

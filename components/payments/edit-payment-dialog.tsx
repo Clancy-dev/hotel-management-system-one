@@ -24,17 +24,35 @@ interface Payment {
   id: string
   amount: number
   paymentMode: string
-  receiptNumber?: string
-  depositPaid?: number
+  receiptNumber?: string | null
+  depositPaid?: number | null
   roomRate: number
-  discountType?: string
-  discountAmount?: number
+  discountType?: string | null
+  discountAmount?: number | null
   totalBill: number
   balanceRemaining: number
   status: string
-  mobileMoneyProvider?: string
-  mobileMoneyNumber?: string
-  paymentDate: Date
+  mobileMoneyProvider?: string | null
+  mobileMoneyNumber?: string | null
+  paymentDate: Date | string
+  booking: {
+    id: string
+    checkInDate: Date | string
+    checkOutDate: Date | string
+    guest: {
+      firstName: string
+      lastName: string
+      phoneNumber: string
+    }
+    room: {
+      roomNumber: string
+      category: {
+        name: string
+      } | null
+    }
+  }
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 interface EditPaymentDialogProps {
@@ -136,17 +154,7 @@ export function EditPaymentDialog({ open, onOpenChange, payment, onPaymentUpdate
         toast.success("Payment updated successfully!")
         onOpenChange(false)
         if (onPaymentUpdated && result.data) {
-          // Convert nulls to undefined for optional fields to match Payment type
-          const cleanedData = {
-            ...result.data,
-            receiptNumber: result.data.receiptNumber ?? undefined,
-            discountAmount: result.data.discountAmount ?? undefined,
-            mobileMoneyProvider: result.data.mobileMoneyProvider ?? undefined,
-            mobileMoneyNumber: result.data.mobileMoneyNumber ?? undefined,
-            depositPaid: result.data.depositPaid ?? undefined,
-            discountType: result.data.discountType ?? undefined,
-          }
-          onPaymentUpdated(cleanedData)
+          onPaymentUpdated(result.data as unknown as Payment)
         }
       } else {
         toast.error(result.error || "Failed to update payment")
