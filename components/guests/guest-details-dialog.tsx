@@ -39,18 +39,19 @@ interface DetailedGuest {
   lastName: string
   nationality: string
   gender: string
-  dateOfBirth?: Date
+  dateOfBirth?: Date | null
   phoneNumber: string
-  email?: string
-  address?: string
-  nextOfKin?: string
-  ninNumber?: string
-  passportNumber?: string
-  visaType?: string
-  visaNumber?: string
-  drivingPermit?: string
-  emergencyContact?: string
+  email?: string | null
+  address?: string | null
+  nextOfKin?: string | null
+  ninNumber?: string | null
+  passportNumber?: string | null
+  visaType?: string | null
+  visaNumber?: string | null
+  drivingPermit?: string | null
+  emergencyContact?: string | null
   createdAt: Date
+  updatedAt: Date
   bookings: Array<{
     id: string
     checkInDate: Date
@@ -117,7 +118,18 @@ export function GuestDetailsDialog({
     try {
       const result = await getGuestById(guestId)
       if (result.success && result.data) {
-        setGuest(result.data)
+        const mappedData = {
+          ...result.data,
+          bookings: result.data.bookings.map((booking: any) => ({
+            ...booking,
+            actualCheckIn: booking.actualCheckIn === null ? undefined : booking.actualCheckIn,
+            actualCheckOut: booking.actualCheckOut === null ? undefined : booking.actualCheckOut,
+          })),
+          dateOfBirth: result.data.dateOfBirth === null ? undefined : result.data.dateOfBirth,
+          updatedAt: result.data.updatedAt,
+        }
+        setGuest(mappedData)
+        setGuest(mappedData)
       } else {
         toast.error(result.error || "Failed to load guest details")
         onOpenChange(false)
