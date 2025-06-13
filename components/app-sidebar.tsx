@@ -64,6 +64,32 @@ const adminItems = [
     url: "/rooms",
     icon: Store,
   },
+  {
+    title: "Guests",
+    url: "/guests",
+    icon: Users,
+  },
+   {
+    title: "Payments",
+    url: "/payments",
+    icon: CreditCard,
+  },
+   {
+    title: "Room-status",
+    url: "/room-status",
+    icon: Bed,
+  },
+  {
+    title: "Notifications",
+    url: "/notifications",
+    icon: Bell,
+  },
+  {
+    title: "Settings",
+    url: "/settings",
+    icon: Settings,
+  },
+  
 ]
 
 const managementItems = [
