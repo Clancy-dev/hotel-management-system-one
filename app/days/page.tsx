@@ -1,9 +1,10 @@
 import { Suspense } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookingCalendar } from "@/components/days/booking-calendar"
-import { getAllRooms } from "@/actions/room"
+// import { getAllRooms } from "@/actions/room"
 import { getAllBookings } from "@/actions/booking"
 import { Skeleton } from "@/components/ui/skeleton"
+import { getRooms } from "@/actions/room"
 
 export const metadata = {
   title: "Days View | Hotel Management",
@@ -11,11 +12,26 @@ export const metadata = {
 }
 
 async function DaysContent() {
-  const roomsResult = await getAllRooms()
+  const roomsResult = await getRooms()
   const bookingsResult = await getAllBookings()
 
-  const rooms = roomsResult.success ? roomsResult.data : []
-  const bookings = bookingsResult.success ? bookingsResult.data : []
+  const rooms = Array.isArray(roomsResult?.data)
+    ? roomsResult.data.map((room: any) => ({
+        ...room,
+        category:
+          room.category === null
+            ? undefined
+            : room.category
+            ? { id: room.category.id, name: room.category.name }
+            : undefined,
+      }))
+    : []
+  const bookings = Array.isArray(bookingsResult?.data)
+    ? bookingsResult.data.map((b: any) => ({
+        ...b,
+        purposeDetails: b.purposeDetails === null ? undefined : b.purposeDetails,
+      }))
+    : []
 
   return (
     <div className="space-y-4">
