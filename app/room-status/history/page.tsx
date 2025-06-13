@@ -1,7 +1,8 @@
 import { getRoomStatusHistory } from "@/actions/room-status"
-import { getRooms } from "@/actions/room"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { RoomStatusHistoryTable } from "@/components/room-status/room-status-history-table"
+import { getRooms } from "@/actions/room"
 
 export default async function RoomStatusHistoryPage() {
   const historyResult = await getRoomStatusHistory()
@@ -42,7 +43,11 @@ export default async function RoomStatusHistoryPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-2 sm:p-4 md:p-6">
-          <RoomStatusHistoryTable initialHistory={history} rooms={rooms} />
+          <RoomStatusHistoryTable
+            initialHistory={history}
+            roomStatuses={[]} // Replace with actual room statuses if available
+            roomCategories={[]} // Replace with actual room categories if available
+          />
         </CardContent>
       </Card>
     </div>

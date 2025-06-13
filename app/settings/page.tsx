@@ -49,8 +49,7 @@ export default function SettingsPage() {
       : availableLanguages.filter(
           (lang) =>
             lang.name.toLowerCase().includes(languageSearchTerm.toLowerCase()) ||
-            lang.nativeName.toLowerCase().includes(languageSearchTerm.toLowerCase()) ||
-            lang.country.toLowerCase().includes(languageSearchTerm.toLowerCase()),
+            lang.nativeName.toLowerCase().includes(languageSearchTerm.toLowerCase()),
         )
 
   // Group filtered languages by region
@@ -205,7 +204,7 @@ export default function SettingsPage() {
                         {language.name} ({language.nativeName})
                       </div>
                       <div className="text-xs sm:text-sm text-muted-foreground flex items-center gap-2">
-                        <span>{language.country}</span>
+                        <span>{language.code}</span>
                         <Badge variant="outline" className="text-xs">
                           {language.direction.toUpperCase()}
                         </Badge>
@@ -254,7 +253,6 @@ export default function SettingsPage() {
                                       {lang.name} ({lang.nativeName})
                                     </div>
                                     <div className="text-xs sm:text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
-                                      <span>{lang.country}</span>
                                       <Badge variant="outline" className="text-xs">
                                         {lang.direction.toUpperCase()}
                                       </Badge>

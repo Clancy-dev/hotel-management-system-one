@@ -1,8 +1,9 @@
-import { getRooms } from "@/actions/room"
+
 import { getCategories } from "@/actions/category"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { RoomTable } from "@/components/rooms/room-table"
 import RoomTopButtons from "@/components/RoomTopButtons"
+import { getRooms } from "@/actions/room"
 
 export default async function RoomsPage() {
   // Fetch rooms and categories

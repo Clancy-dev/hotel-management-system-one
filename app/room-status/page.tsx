@@ -1,9 +1,9 @@
 import { getRoomStatuses, initializeDefaultStatuses } from "@/actions/room-status"
-import { getRooms } from "@/actions/room"
 import { getCategories } from "@/actions/category"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { RoomStatusTable } from "@/components/room-status/room-status-table"
 import { RoomStatusTopButtons } from "@/components/room-status/room-status-top-buttons"
+import { getRooms } from "@/actions/room"
 
 export default async function RoomStatusPage() {
   // Initialize default statuses if they don't exist
@@ -46,12 +46,11 @@ export default async function RoomStatusPage() {
         </CardHeader>
         <CardContent className="p-2 sm:p-4 md:p-6">
           <RoomStatusTable
-            initialRooms={rooms}
-            roomStatuses={statuses.map(s => ({
+            rooms={rooms}
+            statuses={statuses.map(s => ({
               ...s,
               description: s.description === null ? undefined : s.description,
             }))}
-            roomCategories={categories}
           />
         </CardContent>
       </Card>
