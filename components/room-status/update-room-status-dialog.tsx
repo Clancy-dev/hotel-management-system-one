@@ -25,8 +25,11 @@ interface RoomStatus {
   id: string
   name: string
   color: string
-  description?: string
+  description?: string | null
   isDefault: boolean
+  isActive: boolean
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 interface Room {
@@ -48,7 +51,7 @@ interface UpdateRoomStatusDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   room: Room | null
-  roomStatuses: RoomStatus[]
+  statuses: RoomStatus[]
   onStatusUpdated?: (room: Room) => void
 }
 
@@ -61,7 +64,7 @@ export function UpdateRoomStatusDialog({
   open,
   onOpenChange,
   room,
-  roomStatuses,
+  statuses,
   onStatusUpdated,
 }: UpdateRoomStatusDialogProps) {
   const { t } = useLanguage()
@@ -91,7 +94,7 @@ export function UpdateRoomStatusDialog({
     }
   }, [room, open, setValue])
 
-  const selectedStatus = roomStatuses.find((status) => status.id === watchedValues.statusId)
+  const selectedStatus = statuses.find((status) => status.id === watchedValues.statusId)
   const requiresNotes = selectedStatus?.name === "Maintenance" || selectedStatus?.name === "Out of Order"
 
   const onSubmit = async (data: FormData) => {
@@ -110,7 +113,7 @@ export function UpdateRoomStatusDialog({
         toast.success("Room status updated successfully!")
 
         // Find the new status object
-        const newStatus = roomStatuses.find((s) => s.id === data.statusId)
+        const newStatus = statuses.find((s) => s.id === data.statusId)
 
         // Create updated room object with the new status
         const updatedRoom = {
@@ -177,7 +180,7 @@ export function UpdateRoomStatusDialog({
                   onValueChange={(value) => setValue("statusId", value)}
                   className="grid grid-cols-1 gap-3"
                 >
-                  {roomStatuses.map((status) => (
+                  {statuses.map((status) => (
                     <div key={status.id} className="flex items-center space-x-3">
                       <RadioGroupItem value={status.id} id={status.id} />
                       <Label htmlFor={status.id} className="flex items-center space-x-2 cursor-pointer flex-1">

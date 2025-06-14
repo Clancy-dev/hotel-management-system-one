@@ -13,6 +13,9 @@ interface RoomStatus {
   color: string
   description?: string
   isDefault: boolean
+  isActive: boolean
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 interface RoomStatusTopButtonsProps {

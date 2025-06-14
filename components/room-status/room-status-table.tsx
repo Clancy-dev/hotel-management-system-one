@@ -13,6 +13,8 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Search, Filter } from "lucide-react"
 
+
+
 interface Room {
   id: string
   roomNumber: string
@@ -112,7 +114,7 @@ export function RoomStatusTable({ rooms, statuses }: RoomStatusTableProps) {
             id: room.currentStatus.id,
             name: room.currentStatus.name,
             color: room.currentStatus.color,
-            isDefault: room.currentStatus.isDefault,
+            isDefault: room.currentStatus.isDefault ?? false, // Ensure boolean
           }
         : undefined,
     }
@@ -313,12 +315,13 @@ export function RoomStatusTable({ rooms, statuses }: RoomStatusTableProps) {
                       ? {
                           ...selectedRoom.currentStatus,
                           isDefault: selectedRoom.currentStatus.isDefault ?? false,
+                          isActive: (selectedRoom.currentStatus as any).isActive ?? true,
                         }
                       : undefined,
                   }
                 : null
             }
-            roomStatuses={statuses}
+            statuses={statuses}
             open={isUpdateDialogOpen}
             onOpenChange={setIsUpdateDialogOpen}
             onStatusUpdated={handleRoomStatusUpdated}
