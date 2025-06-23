@@ -1,386 +1,360 @@
 "use client"
 
-import type React from "react"
-
+import type * as React from "react"
+import { usePathname } from "next/navigation"
 import {
-  Building2,
-  Users,
-  Calendar,
-  Settings,
   BarChart3,
-  UserCheck,
-  CreditCard,
-  FileText,
-  HelpCircle,
-  LogOut,
-  User,
-  Bell,
-  MessageSquare,
-  Coffee,
-  Utensils,
-  Wifi,
-  Phone,
-  ShieldCheck,
-  Briefcase,
   Bed,
-  ChevronDown,
-  Store,
+  Calendar,
+  ChevronRight,
+  ClipboardList,
+  CreditCard,
+  Home,
+  Hotel,
+  Settings,
+  Users,
+  UserCheck,
+  DoorOpen,
+  DoorClosed,
+  Wrench,
+  TrendingUp,
+  Star,
+  Shield,
+  User,
+  Clock,
+  Wallet,
+  X,
+  Upload,
 } from "lucide-react"
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   Sidebar,
-  SidebarClose,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
-  SidebarSeparator,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useState, useRef } from "react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
-const adminItems = [
-  {
-    title: "Admin Dashboard",
-    url: "/admin",
-    icon: BarChart3,
-  },
-  {
-    title: "Receptionist Dashboard",
-    url: "/receptionist",
-    icon: UserCheck,
-  },
-  {
-    title: "Rooms",
-    url: "/rooms",
-    icon: Store,
-  },
-  {
-    title: "Guests",
-    url: "/guests",
-    icon: Users,
-  },
-   {
-    title: "Payments",
-    url: "/payments",
-    icon: CreditCard,
-  },
-   {
-    title: "Room-status",
-    url: "/room-status",
-    icon: Bed,
-  },
-  {
-    title: "Notifications",
-    url: "/notifications",
-    icon: Bell,
-  },
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
-  },
-  
-]
+const data = {
+  navMain: [
+    {
+      title: "Dashboard",
+      url: "/",
+      icon: Home,
+    },
+    {
+      title: "Reservations",
+      url: "#",
+      icon: Calendar,
+      items: [
+        {
+          title: "New Booking",
+          url: "/reservations/new",
+          icon: ClipboardList,
+        },
+        {
+          title: "Check-in",
+          url: "/reservations/checkin",
+          icon: DoorOpen,
+        },
+        {
+          title: "Check-out",
+          url: "/reservations/checkout",
+          icon: DoorClosed,
+        },
+        {
+          title: "All Reservations",
+          url: "/reservations",
+          icon: Calendar,
+        },
+      ],
+    },
+    {
+      title: "Rooms",
+      url: "#",
+      icon: Bed,
+      items: [
+        {
+          title: "Room Status",
+          url: "/rooms/status",
+          icon: Hotel,
+        },
+        {
+          title: "Room Types",
+          url: "/rooms/types",
+          icon: Bed,
+        },
+        {
+          title: "Maintenance",
+          url: "/rooms/maintenance",
+          icon: Wrench,
+        },
+      ],
+    },
+    {
+      title: "Guests",
+      url: "#",
+      icon: Users,
+      items: [
+        {
+          title: "Guest List",
+          url: "/guests/list",
+          icon: Users,
+        },
+        {
+          title: "Guest History",
+          url: "/guests/history",
+          icon: Clock,
+        },
+        {
+          title: "VIP Guests",
+          url: "/guests/vip",
+          icon: Star,
+        },
+      ],
+    },
+    {
+      title: "Staff",
+      url: "#",
+      icon: UserCheck,
+      items: [
+        {
+          title: "Staff Management",
+          url: "/staff/management",
+          icon: User,
+        },
+        {
+          title: "Schedules",
+          url: "/staff/schedules",
+          icon: Clock,
+        },
+        {
+          title: "Payroll",
+          url: "/staff/payroll",
+          icon: Wallet,
+        },
+      ],
+    },
+    {
+      title: "Reports",
+      url: "#",
+      icon: BarChart3,
+      items: [
+        {
+          title: "Occupancy Report",
+          url: "/reports/occupancy",
+          icon: TrendingUp,
+        },
+        {
+          title: "Revenue Report",
+          url: "/reports/revenue",
+          icon: CreditCard,
+        },
+        {
+          title: "Guest Satisfaction",
+          url: "/reports/satisfaction",
+          icon: Star,
+        },
+      ],
+    },
+    {
+      title: "Settings",
+      url: "#",
+      icon: Settings,
+      items: [
+        {
+          title: "Hotel Settings",
+          url: "/settings/hotel",
+          icon: Hotel,
+        },
+        {
+          title: "User Management",
+          url: "/settings/users",
+          icon: Shield,
+        },
+        {
+          title: "System Settings",
+          url: "/settings/system",
+          icon: Settings,
+        },
+      ],
+    },
+  ],
+}
 
-const managementItems = [
-  {
-    title: "Room Management",
-    url: "/rooms",
-    icon: Building2,
-  },
-  {
-    title: "Staff Management",
-    url: "/staff",
-    icon: Users,
-  },
-  {
-    title: "Reservations",
-    url: "/reservations",
-    icon: Calendar,
-  },
-  {
-    title: "Billing & Payments",
-    url: "/billing",
-    icon: CreditCard,
-  },
-  {
-    title: "Reports",
-    url: "/reports",
-    icon: FileText,
-  },
-]
-
-const hotelServicesItems = [
-  {
-    title: "Housekeeping",
-    url: "/housekeeping",
-    icon: Bed,
-  },
-  {
-    title: "Room Service",
-    url: "/room-service",
-    icon: Coffee,
-  },
-  {
-    title: "Restaurant",
-    url: "/restaurant",
-    icon: Utensils,
-  },
-  {
-    title: "Concierge",
-    url: "/concierge",
-    icon: Bell,
-  },
-  {
-    title: "Maintenance",
-    url: "/maintenance",
-    icon: ShieldCheck,
-  },
-  {
-    title: "WiFi Management",
-    url: "/wifi",
-    icon: Wifi,
-  },
-  {
-    title: "Guest Messages",
-    url: "/messages",
-    icon: MessageSquare,
-  },
-  {
-    title: "Phone Directory",
-    url: "/directory",
-    icon: Phone,
-  },
-  {
-    title: "Business Center",
-    url: "/business",
-    icon: Briefcase,
-  },
-]
-
-const systemItems = [
-  {
-    title: "Notifications",
-    url: "/notifications",
-    icon: Bell,
-  },
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
-  },
-  {
-    title: "Help & Support",
-    url: "/help",
-    icon: HelpCircle,
-  },
-]
-
-export function AppSidebar() {
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { setOpenMobile, isMobile } = useSidebar()
   const pathname = usePathname()
-  const router = useRouter()
-  const { isMobile, setOpenMobile } = useSidebar()
 
-  // Handle navigation on mobile - close sidebar and navigate programmatically
-  const handleMobileNavigation = (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
-    if (isMobile) {
-      e.preventDefault() // Prevent default link navigation
-      e.stopPropagation() // Stop event bubbling
+  const [userImage, setUserImage] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-      // Close sidebar first
-      setOpenMobile(false)
-
-      // Navigate programmatically after a small delay to ensure sidebar closes first
-      setTimeout(() => {
-        router.push(url)
-      }, 10)
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setUserImage(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
     }
   }
 
-  const isActiveRoute = (url: string) => {
-    // Handle exact matches for main routes
-    if (pathname === url) return true
-
-    // Handle root path redirect to admin
-    if (pathname === "/" && url === "/admin") return true
-
-    return false
+  const handleLinkClick = () => {
+    // Close mobile sidebar when a link is clicked
+    setOpenMobile(false)
   }
 
-  // Check if any item in a group is active
-  const isGroupActive = (items: typeof adminItems) => {
-    return items.some((item) => isActiveRoute(item.url))
+  const isActiveLink = (url: string) => {
+    if (url === "/") {
+      return pathname === "/"
+    }
+    return pathname.startsWith(url)
   }
 
-  // Determine default open state for each group
-  const isDashboardsOpen = isGroupActive(adminItems)
-  const isManagementOpen = isGroupActive(managementItems)
-  const isHotelServicesOpen = isGroupActive(hotelServicesItems)
-  const isSystemOpen = isGroupActive(systemItems)
+  const hasActiveChild = (items: any[]) => {
+    return items?.some((item) => isActiveLink(item.url))
+  }
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <div className="flex items-center justify-between px-2 py-4">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-6 w-6" />
-            <span className="font-semibold text-lg">Hotel Manager</span>
-          </div>
-          <SidebarClose />
+        <div className="flex items-center justify-between">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild>
+                <Link href="/" onClick={handleLinkClick}>
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                    <Hotel className="size-4" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">Hotel Management</span>
+                    <span className="truncate text-xs">System</span>
+                  </div>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+
+          {/* Close button for mobile */}
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent"
+              onClick={() => setOpenMobile(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </SidebarHeader>
-
       <SidebarContent>
-        {/* Dashboards Group */}
-        <Collapsible defaultOpen={isDashboardsOpen} className="group/collapsible">
-          <SidebarGroup>
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger className="flex w-full items-center justify-between hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md transition-colors">
-                <span>Dashboards</span>
-                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {adminItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild isActive={isActiveRoute(item.url)}>
-                        <Link href={item.url} onClick={(e) => handleMobileNavigation(e, item.url)}>
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
-
-        {/* Management Group */}
-        <Collapsible defaultOpen={isManagementOpen} className="group/collapsible">
-          <SidebarGroup>
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger className="flex w-full items-center justify-between hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md transition-colors">
-                <span>Management</span>
-                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {managementItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild isActive={isActiveRoute(item.url)}>
-                        <Link href={item.url} onClick={(e) => handleMobileNavigation(e, item.url)}>
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
-
-        {/* Hotel Services Group */}
-        <Collapsible defaultOpen={isHotelServicesOpen} className="group/collapsible">
-          <SidebarGroup>
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger className="flex w-full items-center justify-between hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md transition-colors">
-                <span>Hotel Services</span>
-                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {hotelServicesItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild isActive={isActiveRoute(item.url)}>
-                        <Link href={item.url} onClick={(e) => handleMobileNavigation(e, item.url)}>
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
-
-        {/* System Group */}
-        <Collapsible defaultOpen={isSystemOpen} className="group/collapsible">
-          <SidebarGroup>
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger className="flex w-full items-center justify-between hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md transition-colors">
-                <span>System</span>
-                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {systemItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild isActive={isActiveRoute(item.url)}>
-                        <Link href={item.url} onClick={(e) => handleMobileNavigation(e, item.url)}>
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
+        <SidebarGroup>
+          <SidebarGroupLabel>Hotel Operations</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {data.navMain.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  {item.items ? (
+                    <Collapsible asChild defaultOpen={hasActiveChild(item.items)} className="group/collapsible">
+                      <div>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton tooltip={item.title} isActive={hasActiveChild(item.items)}>
+                            {item.icon && <item.icon />}
+                            <span>{item.title}</span>
+                            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {item.items?.map((subItem) => (
+                              <SidebarMenuSubItem key={subItem.title}>
+                                <SidebarMenuSubButton asChild isActive={isActiveLink(subItem.url)}>
+                                  <Link href={subItem.url} onClick={handleLinkClick}>
+                                    {subItem.icon && <subItem.icon />}
+                                    <span>{subItem.title}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </div>
+                    </Collapsible>
+                  ) : (
+                    <SidebarMenuButton tooltip={item.title} isActive={isActiveLink(item.url)} asChild>
+                      <Link href={item.url} onClick={handleLinkClick}>
+                        {item.icon && <item.icon />}
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  )}
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
-
       <SidebarFooter>
-        <SidebarSeparator />
-        <div className="p-2">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
-                <AvatarFallback>CJ</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium">Clancy Johnson</span>
-                <span className="text-xs text-muted-foreground">Administrator</span>
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" size="sm" className="w-full">
-              <User className="h-3.5 w-3.5 mr-1" />
-              <span className="text-xs">Profile</span>
-            </Button>
-            <Button variant="outline" size="sm" className="w-full">
-              <LogOut className="h-3.5 w-3.5 mr-1" />
-              <span className="text-xs">Logout</span>
-            </Button>
-          </div>
-        </div>
+        <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton size="lg">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={userImage || ""} alt="User" />
+                    <AvatarFallback>AU</AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">Admin User</span>
+                    <span className="truncate text-xs">admin@hotel.com</span>
+                  </div>
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" className="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Photo
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLinkClick}>
+                  <Link href="/profile">Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>Settings</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Logout</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   )
 }

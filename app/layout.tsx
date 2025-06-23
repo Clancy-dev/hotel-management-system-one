@@ -1,43 +1,48 @@
-import type React from "react";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
-import { ThemeProvider } from "@/components/theme-provider";
-// import { CurrencyProvider } from "@/context/CurrencyContext";
-import "./globals.css";
-import { Toaster } from "react-hot-toast";
-import { CurrencyProvider } from "@/hooks/use-currency";
-import { PolicyProvider } from "@/hooks/use-policy";
-import { LanguageProvider } from "@/hooks/use-language";
+import type React from "react"
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
+import { SidebarProvider } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/app-sidebar"
+import { Header } from "@/components/header"
+import { CurrencyProvider } from "@/contexts/currency-context"
+import { PaginationProvider } from "@/contexts/pagination-context"
+import { Toaster } from "@/components/ui/toaster"
+
+const inter = Inter({ subsets: ["latin"] })
+
+export const metadata: Metadata = {
+  title: "Hotel Management System",
+  description: "Complete hotel management solution",
+    generator: 'v0.dev'
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-background font-sans antialiased">
-        <LanguageProvider>
-           <PolicyProvider>
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <CurrencyProvider>
-            
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange={false}>
-            <Toaster position="top-right" />
-            <SidebarProvider>
-              <AppSidebar />
-              <SidebarInset>{children}</SidebarInset>
-            </SidebarProvider>
-          </ThemeProvider>
-        </CurrencyProvider>
-        </PolicyProvider>
-        </LanguageProvider>
-       
-        
+            <PaginationProvider>
+              <SidebarProvider>
+                <div className="flex min-h-screen w-full">
+                  <AppSidebar />
+                  <div className="flex-1 flex flex-col min-w-0">
+                    <Header />
+                    <main className="flex-1 p-4 md:p-6 pt-20 md:pt-24 overflow-auto">{children}</main>
+                  </div>
+                </div>
+              </SidebarProvider>
+            </PaginationProvider>
+          </CurrencyProvider>
+        </ThemeProvider>
+        <Toaster />
       </body>
     </html>
-  );
+  )
 }
-
-export const metadata = {
-  generator: 'v0.dev'
-};
