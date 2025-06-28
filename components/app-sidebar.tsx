@@ -98,6 +98,11 @@ const data = {
       icon: Bed,
       items: [
         {
+          title: "Rooms Management",
+          url: "/rooms/rooms-management",
+          icon: ClipboardList,
+        },
+        {
           title: "Room Status",
           url: "/rooms/status",
           icon: Hotel,
@@ -108,9 +113,14 @@ const data = {
           icon: Bed,
         },
         {
-          title: "Maintenance",
+          title: "Room Maintenance",
           url: "/rooms/maintenance",
           icon: Wrench,
+        },
+        {
+          title: "Out of Order",
+          url: "/rooms/out-of-order",
+          icon: DoorClosed,
         },
       ],
     },
