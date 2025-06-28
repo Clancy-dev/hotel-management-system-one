@@ -77,29 +77,26 @@ export default function OutOfOrderPage() {
   const [availableRooms, setAvailableRooms] = useState<Room[]>([])
 
   // Form state with persistence
-  const [formData, setFormData] = useState(() => {
-    const savedFormData = localStorage.getItem("out-of-order-form-data")
-    if (savedFormData) {
-      try {
-        return JSON.parse(savedFormData)
-      } catch {
-        return {
-          roomId: "",
-          reason: "",
-          details: "",
-        }
-      }
-    }
-    return {
-      roomId: "",
-      reason: "",
-      details: "",
-    }
-  })
+ const [formData, setFormData] = useState({ roomId: "", reason: "", details: "" })
 
+  // Load saved form data on client
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      const saved = window.localStorage.getItem("out-of-order-form-data")
+      if (saved) setFormData(JSON.parse(saved))
+    } catch {
+      // ignore parse errors
+    }
+  }, [])
   // Save form data to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem("out-of-order-form-data", JSON.stringify(formData))
+    if (typeof window === "undefined") return
+    try {
+      window.localStorage.setItem("out-of-order-form-data", JSON.stringify(formData))
+    } catch {
+      // ignore write errors
+    }
   }, [formData])
 
   // Sample out of order rooms data

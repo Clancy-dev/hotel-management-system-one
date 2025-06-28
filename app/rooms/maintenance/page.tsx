@@ -108,33 +108,23 @@ export default function MaintenancePage() {
   const [datePickerOpen, setDatePickerOpen] = useState(false)
 
   // Form state - persisted across dialog closes
-  const [formData, setFormData] = useState(() => {
-    // Load persisted form data from localStorage
-    const savedFormData = localStorage.getItem("maintenance-form-data")
-    if (savedFormData) {
-      try {
-        return JSON.parse(savedFormData)
-      } catch {
-        return {
-          room: "",
-          issueType: "",
-          priority: "",
-          description: "",
-          reportedBy: "",
-          assignedTo: "",
-        }
-      }
+  const [formData, setFormData] = useState(() => ({
+    room: "",
+    issueType: "",
+    priority: "",
+    description: "",
+    reportedBy: "",
+    assignedTo: "",
+  }))
+useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      const saved = window.localStorage.getItem("maintenance-form-data")
+      if (saved) setFormData(JSON.parse(saved))
+    } catch {
+      // ignore
     }
-    return {
-      room: "",
-      issueType: "",
-      priority: "",
-      description: "",
-      reportedBy: "",
-      assignedTo: "",
-    }
-  })
-
+  }, [])
   // Save form data to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("maintenance-form-data", JSON.stringify(formData))
@@ -494,14 +484,16 @@ export default function MaintenancePage() {
   }
 
   // Save requests to localStorage with error handling
-  const saveRequestsToStorage = useCallback((requestsToSave: MaintenanceRequest[]) => {
+  const saveRequestsToStorage = useCallback((arr: MaintenanceRequest[]) => {
+    if (typeof window === "undefined") return
     try {
-      localStorage.setItem("maintenance-requests", JSON.stringify(requestsToSave))
-    } catch (error) {
-      console.error("Error saving requests to localStorage:", error)
-      toast.error("Failed to save data to local storage")
+      window.localStorage.setItem("maintenance-requests", JSON.stringify(arr))
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to save requests")
     }
   }, [])
+
 
   // Save deleted requests to localStorage with error handling
   const saveDeletedRequestsToStorage = useCallback((deletedRequestsToSave: MaintenanceRequest[]) => {
@@ -515,10 +507,9 @@ export default function MaintenancePage() {
 
   // Save requests to localStorage when requests change
   useEffect(() => {
-    if (requests.length > 0) {
-      saveRequestsToStorage(requests)
-    }
-  }, [requests, saveRequestsToStorage])
+    if (typeof window === "undefined") return
+    window.localStorage.setItem("maintenance-form-data", JSON.stringify(formData))
+  }, [formData])
 
   // Load deleted requests from localStorage
   useEffect(() => {
@@ -784,57 +775,17 @@ export default function MaintenancePage() {
   }
 
   // FIXED: Completely rewritten delete function to prevent freezing
-  const handleConfirmDelete = useCallback(() => {
+   const handleConfirmDelete = useCallback(() => {
     if (!requestToDelete) return
-
-    try {
-      // Create deleted request with timestamp
-      const deletedRequest: MaintenanceRequest = {
-        ...requestToDelete,
-        deletedAt: Date.now(),
-        deletedBy: "Current User",
-      }
-
-      // Update both states atomically
-      const updatedRequests = requests.filter((req) => req.id !== requestToDelete.id)
-      const updatedDeletedRequests = [deletedRequest, ...deletedRequests]
-
-      // Save to localStorage immediately
-      saveRequestsToStorage(updatedRequests)
-      saveDeletedRequestsToStorage(updatedDeletedRequests)
-
-      // Close dialogs and clear state
-      setDeleteConfirmOpen(false)
-      setRequestToDelete(null)
-
-      // Show success message
-      toast.success(`Request ${deletedRequest.id} moved to recycle bin!`)
-
-      // Reload the entire page after successful deletion
-      setTimeout(() => {
-        window.location.reload()
-      }, 1000) // Small delay to show the toast message
-    } catch (error) {
-      console.error("Error deleting request:", error)
-      toast.error("Failed to delete request. Please try again.")
-
-      // Reset dialog state on error
-      setDeleteConfirmOpen(false)
-      setRequestToDelete(null)
-    }
-  }, [requestToDelete, requests, deletedRequests, saveRequestsToStorage, saveDeletedRequestsToStorage])
-
+    const delReq = { ...requestToDelete, deletedAt: Date.now(), deletedBy: "Current User" }
+    setRequests((prev) => prev.filter((r) => r.id !== requestToDelete.id))
+    setDeletedRequests((prev) => [delReq, ...prev])
+    toast.success(`Request ${delReq.id} moved to recycle bin!`)
+  }, [requestToDelete])
   const handleClearForm = () => {
-    const clearedForm = {
-      room: "",
-      issueType: "",
-      priority: "",
-      description: "",
-      reportedBy: "",
-      assignedTo: "",
-    }
-    setFormData(clearedForm)
-    localStorage.setItem("maintenance-form-data", JSON.stringify(clearedForm))
+    const cleared = { room: "", issueType: "", priority: "", description: "", reportedBy: "", assignedTo: "" }
+    setFormData(cleared)
+    if (typeof window !== "undefined") window.localStorage.setItem("maintenance-form-data", JSON.stringify(cleared))
   }
 
   // Filter deleted requests based on search, date, and time
@@ -923,6 +874,8 @@ export default function MaintenancePage() {
     },
     [requests, deletedRequests, saveRequestsToStorage, saveDeletedRequestsToStorage],
   )
+
+  
 
   // Permanently delete request
   const handlePermanentDelete = useCallback(
